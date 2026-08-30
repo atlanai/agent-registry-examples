@@ -1,0 +1,8 @@
+{
+  "version": "2.20.1",
+  "platform": "x86_64-unknown-linux-gnu",
+  "archive_url": "https://prod.download.cli.kiro.dev/stable/2.20.1/kirocli-x86_64-linux.zip",
+  "archive_sha256": "40c49223ce9844746f9cebadbc17dfd2491fa9e46fc19ccd527be70d44798371",
+  "binary_member": "kirocli/bin/kiro-cli",
+  "binary_sha256": "5c5523831790318b6b2fb9e8c205915f2355106fe1090ac0cfe121a4f815b6b6"
+}

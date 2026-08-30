@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 DATA_WORKSPACE_ID = "workspace_01m0g43eb2fmgbv21dc7ygs7rc"
 LANGGRAPH_FRAMEWORK_ID = "agent_framework_01m09v3ncvey0a4ndx008we9kr"
+KIRO_FRAMEWORK_NAME = "kiro-cli"
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,7 +24,8 @@ class DesiredEnvironment:
 @dataclass(frozen=True, slots=True)
 class DesiredAgent:
     name: str
-    agent_framework_id: str
+    agent_framework_id: str | None
+    agent_framework_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,15 +66,34 @@ def build_desired_registry_state() -> DesiredRegistryState:
                 network_mode="limited",
                 allowed_hosts=("agentgateway.atlan.engineering",),
             ),
+            DesiredEnvironment(
+                name="daytona-kiro-pr-review",
+                environment_type="cloud",
+                network_mode="limited",
+                allowed_hosts=(
+                    "agentgateway.atlan.engineering",
+                    "prod.us-east-1.auth.desktop.kiro.dev",
+                    "prod.us-east-1.telemetry.desktop.kiro.dev",
+                    "q.us-east-1.amazonaws.com",
+                    "runtime.us-east-1.kiro.dev",
+                    "management.us-east-1.kiro.dev",
+                    "telemetry.us-east-1.kiro.dev",
+                ),
+            ),
         ),
         agents=(
             DesiredAgent(
-                name="registry-pr-review-sdk",
+                name="pr-review-agent",
                 agent_framework_id=LANGGRAPH_FRAMEWORK_ID,
             ),
             DesiredAgent(
                 name="registry-skill-improver-cli",
                 agent_framework_id=LANGGRAPH_FRAMEWORK_ID,
+            ),
+            DesiredAgent(
+                name="kiro-pr-review-agent",
+                agent_framework_id=None,
+                agent_framework_name=KIRO_FRAMEWORK_NAME,
             ),
         ),
     )

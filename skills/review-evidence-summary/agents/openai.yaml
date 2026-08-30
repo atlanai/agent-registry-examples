@@ -1,0 +1,3 @@
+interface:
+  display_name: "Review Evidence Summary"
+  short_description: "Normalize governed review evidence"

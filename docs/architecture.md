@@ -1,8 +1,8 @@
 # Architecture
 
-The demo proves one mechanism: a Git-authored skill is versioned in Agent Registry, executed by a
-LangGraph agent inside Daytona, observed through the Atlan SDK or CLI, and improved from its own
-version-scoped trace evidence.
+The factory executes the same synthetic risky patch through two independent reviewers: LangGraph
+and headless Kiro CLI. Both run in ephemeral Daytona sandboxes, use the same three Git-authored
+Registry skills, authenticate as distinct Atlan Agents, and emit separately attributable evidence.
 
 ![Registry PR-review topology](images/registry-topology.svg)
 
@@ -11,7 +11,7 @@ version-scoped trace evidence.
 The local checkout is the source of truth for both skills, the evaluation cases, and the synthetic
 knowledge documents. Registry is the source of truth for published skill versions, agent identity,
 sandbox declarations, sessions, outputs, relationships, and trace readback. Daytona executes the
-two agents but owns none of those definitions.
+three agents but owns none of those definitions.
 
 Secrets cross only two boundaries:
 
@@ -28,16 +28,21 @@ All objects live in the Data workspace `workspace_01m0g43eb2fmgbv21dc7ygs7rc`.
 | Kind | Stable name | Purpose |
 |---|---|---|
 | Agent framework | `langgraph` | Existing seeded framework; reused, not recreated |
+| Agent framework | `kiro-cli` | Registered framework for headless custom agents |
 | Agent provider | `daytona` | Catalog entry for the external sandbox service |
 | Environment | `daytona-sdk-pr-review` | LangGraph plus internal `atlan_ai` wheel |
 | Environment | `daytona-cli-skill-improver` | LangGraph plus checksum-pinned Linux `atlanai` |
-| Agent | `registry-pr-review-sdk` | Reviews synthetic PR diffs and exports through `atlan_ai` |
+| Environment | `daytona-kiro-pr-review` | Pinned Kiro launcher plus internal `atlan_ai` wheel |
+| Agent | `pr-review-agent` | Local alias for the immutable LangGraph Agent ID |
+| Agent | `kiro-pr-review-agent` | Read-only Kiro reviewer with structured JSONL output |
 | Agent | `registry-skill-improver-cli` | Reads Registry traces, proposes a patch, exports through CLI |
 | Skill | `secure-pr-review` | Versioned review policy and deterministic rules |
+| Skill | `test-impact-analysis` | Focused affected-test and regression-gap analysis |
+| Skill | `review-evidence-summary` | Validated decision, findings, skills, and test-plan contract |
 | Skill | `trace-driven-skill-improvement` | Evidence analysis and approval-gated improvement workflow |
 
-The agents are peers. Neither is registered as the other's sub-agent. Each has one `uses_skill`
-relationship to its governing skill.
+The agents are peers. Both review agents use the same three review skills. The improver uses
+`trace-driven-skill-improvement`; none is registered as another agent's sub-agent.
 
 ## Execution packages
 
@@ -52,12 +57,13 @@ The CLI agent image installs Python and LangGraph, then embeds `atlanai` 0.3.53 
 The binary is downloaded from Atlan's signed preview manifest and checked against
 `2de549a7f584f748f8e082e7c88b18a0e916ef3051f06be2aeddfefa6b13ea59` before use.
 
-Both sandboxes are ephemeral. Runtime egress is limited to `agentgateway.atlan.engineering` and
-every cleanup path deletes the sandbox.
+The Kiro sandbox embeds the verified 2.20.1 Linux launcher. Archive and launcher digests are pinned
+in `vendor/kiro/manifest.json`; the official installer is never piped to a shell. Kiro receives only
+`read` and `grep`. All sandboxes are ephemeral and every exit path deletes them.
 
 ## Attribution
 
-The SDK reviewer uses its Registry agent key as `ATLAN_API_KEY`. The CLI improver uses its own key
+Each reviewer uses its Registry Agent key as `ATLAN_API_KEY`. The CLI improver uses its own key
 as `ATLANAI_TOKEN`. Gateway-authenticated identity therefore scopes each agent trace; an arbitrary
 payload attribute cannot claim another agent.
 
@@ -72,9 +78,10 @@ atlan.skill.fingerprint_source=registry
 atlan.registry.skill.version_ordinal
 ```
 
-Raw diffs and knowledge contents are not stored in the trace. The evaluation case id, expected
-decision, actual decision, finding count, and matched rule ids are enough to diagnose the synthetic
-failure.
+Each review creates a Registry Session and linked Output after trace export. Completion requires
+readback through the Agent trace facade and every used Skill trace facade. Raw diffs and knowledge
+contents are not stored in the trace. The evaluation case id, expected decision, actual decision,
+finding count, and matched rule ids are enough to diagnose the synthetic failure.
 
 ## Storage and readback
 
@@ -82,4 +89,3 @@ OTLP ingest acknowledges durable handoff before asynchronous ClickHouse projecti
 therefore distinguishes three states: ingest accepted, projected trace found, and subject/skill
 facade attribution confirmed. A two-minute bounded poll handles projection lag; expiry is reported
 as partial verification rather than silently retried forever.
-

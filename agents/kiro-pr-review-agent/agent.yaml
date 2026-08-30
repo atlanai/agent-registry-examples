@@ -1,0 +1,20 @@
+name: kiro-pr-review-agent
+display_name: Kiro PR Review Agent
+framework: kiro-cli
+provider: daytona
+environment: daytona-kiro-pr-review
+skills:
+  - secure-pr-review@1
+  - test-impact-analysis@1
+  - review-evidence-summary@1
+entrypoint: kiro-cli chat --engine v3 --agent pr-review --no-interactive --trust-tools=read,grep --output-format stream-json
+network:
+  mode: limited
+  allowed_hosts:
+    - agentgateway.atlan.engineering
+    - prod.us-east-1.auth.desktop.kiro.dev
+    - prod.us-east-1.telemetry.desktop.kiro.dev
+    - q.us-east-1.amazonaws.com
+    - runtime.us-east-1.kiro.dev
+    - management.us-east-1.kiro.dev
+    - telemetry.us-east-1.kiro.dev

@@ -1,24 +1,47 @@
 {
   "workspace_id": "workspace_01m0g43eb2fmgbv21dc7ygs7rc",
-  "framework": {
-    "id": "agent_framework_01m09v3ncvey0a4ndx008we9kr",
-    "name": "langgraph",
-    "mode": "reuse"
-  },
+  "frameworks": [
+    {
+      "id": "agent_framework_01m09v3ncvey0a4ndx008we9kr",
+      "name": "langgraph",
+      "mode": "reuse"
+    },
+    {
+      "name": "kiro-cli",
+      "mode": "register"
+    }
+  ],
   "provider": {
     "name": "daytona",
     "provider_type": "custom"
   },
   "environments": [
     "daytona-sdk-pr-review",
-    "daytona-cli-skill-improver"
+    "daytona-cli-skill-improver",
+    "daytona-kiro-pr-review"
   ],
   "agents": [
-    "registry-pr-review-sdk",
-    "registry-skill-improver-cli"
+    "pr-review-agent",
+    "registry-skill-improver-cli",
+    "kiro-pr-review-agent"
   ],
   "skills": [
     "secure-pr-review",
+    "test-impact-analysis",
+    "review-evidence-summary",
     "trace-driven-skill-improvement"
-  ]
+  ],
+  "relationships": {
+    "pr-review-agent": [
+      "secure-pr-review",
+      "test-impact-analysis",
+      "review-evidence-summary"
+    ],
+    "kiro-pr-review-agent": [
+      "secure-pr-review",
+      "test-impact-analysis",
+      "review-evidence-summary"
+    ],
+    "registry-skill-improver-cli": ["trace-driven-skill-improvement"]
+  }
 }

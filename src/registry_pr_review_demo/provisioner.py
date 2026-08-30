@@ -14,6 +14,7 @@ from registry_pr_review_demo.registration import (
 from registry_pr_review_demo.secret_store import KeychainSecretStore
 
 KEYCHAIN_ACCOUNT = "registry-pr-review"
+PR_REVIEW_AGENT_ID = "agent_01m11he6zdf88b5z381489b3xe"
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,9 +54,43 @@ class RegistryProvisioner:
 
     def apply(self) -> dict[str, object]:
         desired = build_desired_registry_state()
+        frameworks = self._named_inventory("agent-frameworks")
         providers = self._named_inventory("providers")
         environments = self._named_inventory("environments")
         agents = self._named_inventory("agents")
+
+        kiro_framework_id = frameworks.get("kiro-cli")
+        if kiro_framework_id is None:
+            framework = self._post(
+                "agent:/agent-frameworks",
+                {
+                    "name": "kiro-cli",
+                    "display_name": "Kiro CLI",
+                    "description": "Kiro CLI custom agents running headlessly in Daytona.",
+                    "workspace_id": desired.workspace_id,
+                    "homepage_url": "https://kiro.dev/cli/",
+                    "docs_url": "https://kiro.dev/docs/cli/",
+                    "languages": ["markdown", "python"],
+                },
+            )
+            kiro_framework_id = _string(framework, "id")
+            self._readback("agent-frameworks", kiro_framework_id)
+
+        legacy_agent_id = agents.get("registry-pr-review-sdk")
+        if legacy_agent_id is not None:
+            if legacy_agent_id != PR_REVIEW_AGENT_ID:
+                raise RuntimeError("legacy PR-review name resolved to an unexpected immutable id")
+            self._patch(
+                f"agent:/agents/{legacy_agent_id}",
+                {
+                    "name": "pr-review-agent",
+                    "display_name": "PR Review Agent",
+                    "description": "LangGraph PR review using verified Registry skills in Daytona.",
+                },
+            )
+            self._readback("agents", legacy_agent_id)
+            agents["pr-review-agent"] = legacy_agent_id
+            agents.pop("registry-pr-review-sdk", None)
 
         provider_id = providers.get(desired.provider.name)
         if provider_id is None:
@@ -81,6 +116,11 @@ class RegistryProvisioner:
                 packages: dict[str, list[str]] = {"pip": ["langgraph==1.2.11"]}
                 if environment.name == "daytona-sdk-pr-review":
                     packages["wheel"] = ["atlan-ai==0.1.0"]
+                elif environment.name == "daytona-kiro-pr-review":
+                    packages = {
+                        "binary": ["kiro-cli==2.20.1"],
+                        "wheel": ["atlan-ai==0.1.0"],
+                    }
                 else:
                     packages["binary"] = ["atlanai==0.3.53"]
                 created = self._post(
@@ -109,9 +149,20 @@ class RegistryProvisioner:
             if agent_id is None:
                 instructions = (
                     "Review synthetic pull-request diffs using the pinned Registry skill."
-                    if agent.name == "registry-pr-review-sdk"
-                    else "Analyze version-scoped Registry traces and propose a bounded skill patch."
+                    if agent.name == "pr-review-agent"
+                    else (
+                        "Review synthetic diffs with read-only Kiro tools and verified "
+                        "Registry skills."
+                        if agent.name == "kiro-pr-review-agent"
+                        else "Analyze version-scoped Registry traces and propose a bounded "
+                        "skill patch."
+                    )
                 )
+                framework_id = agent.agent_framework_id
+                if framework_id is None and agent.agent_framework_name == "kiro-cli":
+                    framework_id = kiro_framework_id
+                if framework_id is None:
+                    raise RuntimeError(f"agent {agent.name} has no registered framework")
                 created = self._post(
                     "agent:/agents",
                     {
@@ -119,7 +170,7 @@ class RegistryProvisioner:
                         "display_name": agent.name.replace("-", " ").title(),
                         "description": instructions,
                         "workspace_id": desired.workspace_id,
-                        "agent_framework_id": agent.agent_framework_id,
+                        "agent_framework_id": framework_id,
                         "agent_provider_id": provider_id,
                         "instructions": instructions,
                         "max_step_count": 8,
@@ -127,23 +178,16 @@ class RegistryProvisioner:
                     },
                 )
                 agent_id = _string(created, "id")
-                api_key = _optional_identity_key(created)
-                if api_key is not None:
-                    service = (
-                        "atlan/registry-pr-review-sdk-agent"
-                        if agent.name == "registry-pr-review-sdk"
-                        else "atlan/registry-skill-improver-cli-agent"
-                    )
-                    self._secrets.put(
-                        service=service,
-                        account=KEYCHAIN_ACCOUNT,
-                        secret=api_key.encode(),
-                    )
+                self._capture_create_key(agent.name, agent_id, created)
             self._readback("agents", agent_id)
             agent_ids[agent.name] = agent_id
 
         return {
             "workspace_id": desired.workspace_id,
+            "framework_ids": {
+                "langgraph": "agent_framework_01m09v3ncvey0a4ndx008we9kr",
+                "kiro-cli": kiro_framework_id,
+            },
             "provider_id": provider_id,
             "environment_ids": environment_ids,
             "agent_ids": agent_ids,
@@ -155,8 +199,9 @@ class RegistryProvisioner:
             raise ValueError("Registry state is missing agent_ids")
         agent_ids = cast(dict[str, object], raw_agent_ids)
         services = {
-            "registry-pr-review-sdk": "atlan/registry-pr-review-sdk-agent",
+            "pr-review-agent": "atlan/pr-review-agent",
             "registry-skill-improver-cli": "atlan/registry-skill-improver-cli-agent",
+            "kiro-pr-review-agent": "atlan/kiro-pr-review-agent",
         }
         for name, service in services.items():
             agent_id = agent_ids.get(name)
@@ -179,6 +224,25 @@ class RegistryProvisioner:
                 account=KEYCHAIN_ACCOUNT,
                 secret=key.encode(),
             )
+
+    def _capture_create_key(self, name: str, agent_id: str, created: Mapping[str, object]) -> None:
+        key = _optional_identity_key(created)
+        if key is None:
+            rotated = self._command(
+                ("atlanai", "api", "post", f"agent:/agents/{agent_id}/identity/rotate"),
+                None,
+            )
+            key = _string(rotated, "api_key")
+        services = {
+            "pr-review-agent": "atlan/pr-review-agent",
+            "registry-skill-improver-cli": "atlan/registry-skill-improver-cli-agent",
+            "kiro-pr-review-agent": "atlan/kiro-pr-review-agent",
+        }
+        self._secrets.put(
+            service=services[name],
+            account=KEYCHAIN_ACCOUNT,
+            secret=key.encode(),
+        )
 
     def _named_inventory(self, plural: str) -> dict[str, str]:
         payload = self._command(
@@ -204,6 +268,12 @@ class RegistryProvisioner:
     def _post(self, path: str, body: Mapping[str, object]) -> dict[str, object]:
         return self._command(
             ("atlanai", "api", "post", path, "--input", "-"),
+            json.dumps(body, separators=(",", ":"), sort_keys=True).encode(),
+        )
+
+    def _patch(self, path: str, body: Mapping[str, object]) -> dict[str, object]:
+        return self._command(
+            ("atlanai", "api", "patch", path, "--input", "-"),
             json.dumps(body, separators=(",", ":"), sort_keys=True).encode(),
         )
 

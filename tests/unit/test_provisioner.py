@@ -20,14 +20,19 @@ class SecretStore:
 
 def test_provisioner_captures_agent_keys_without_persisting_them() -> None:
     commands: list[tuple[tuple[str, ...], bytes | None]] = []
-    counters = {"provider": 0, "environment": 0, "agent": 0}
+    counters = {"framework": 0, "provider": 0, "environment": 0, "agent": 0}
 
     def runner(args: Sequence[str], input_bytes: bytes | None) -> ApiCommandResult:
         command = tuple(args)
         commands.append((command, input_bytes))
         method, path = command[2], command[3]
-        if method == "get" and path.endswith(("/providers", "/environments", "/agents")):
+        if method == "get" and path.endswith(
+            ("/agent-frameworks", "/providers", "/environments", "/agents")
+        ):
             return ApiCommandResult(0, b'{"items":[]}', b"")
+        if method == "post" and path == "agent:/agent-frameworks":
+            counters["framework"] += 1
+            return ApiCommandResult(0, b'{"id":"agent_framework_kiro","name":"kiro-cli"}', b"")
         if method == "post" and path == "agent:/providers":
             counters["provider"] += 1
             return ApiCommandResult(0, b'{"id":"agent_provider_daytona","name":"daytona"}', b"")
@@ -65,10 +70,11 @@ def test_provisioner_captures_agent_keys_without_persisting_them() -> None:
     secrets = SecretStore()
     state = RegistryProvisioner(runner=runner, secret_store=secrets).apply()
 
-    assert counters == {"provider": 1, "environment": 2, "agent": 2}
+    assert counters == {"framework": 1, "provider": 1, "environment": 3, "agent": 3}
     assert set(secrets.values) == {
-        "atlan/registry-pr-review-sdk-agent",
+        "atlan/pr-review-agent",
         "atlan/registry-skill-improver-cli-agent",
+        "atlan/kiro-pr-review-agent",
     }
     serialized_state = json.dumps(state)
     assert "secret-registry" not in serialized_state
@@ -78,6 +84,7 @@ def test_provisioner_captures_agent_keys_without_persisting_them() -> None:
     secrets.values.clear()
     RegistryProvisioner(runner=runner, secret_store=secrets).rotate_and_store_agent_keys(state)
     assert secrets.values == {
-        "atlan/registry-pr-review-sdk-agent": b"rotated-key",
+        "atlan/pr-review-agent": b"rotated-key",
         "atlan/registry-skill-improver-cli-agent": b"rotated-key",
+        "atlan/kiro-pr-review-agent": b"rotated-key",
     }

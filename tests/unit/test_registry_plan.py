@@ -17,12 +17,16 @@ def test_desired_state_uses_data_workspace_and_reuses_langgraph_framework() -> N
     assert {environment.name for environment in desired.environments} == {
         "daytona-sdk-pr-review",
         "daytona-cli-skill-improver",
+        "daytona-kiro-pr-review",
     }
     assert {agent.name for agent in desired.agents} == {
-        "registry-pr-review-sdk",
+        "pr-review-agent",
         "registry-skill-improver-cli",
+        "kiro-pr-review-agent",
     }
-    assert all(agent.agent_framework_id == LANGGRAPH_FRAMEWORK_ID for agent in desired.agents)
+    assert {
+        agent.name for agent in desired.agents if agent.agent_framework_id == LANGGRAPH_FRAMEWORK_ID
+    } == {"pr-review-agent", "registry-skill-improver-cli"}
 
 
 def test_registration_plan_creates_only_missing_objects() -> None:
@@ -30,7 +34,7 @@ def test_registration_plan_creates_only_missing_objects() -> None:
     inventory = RegistryInventory(
         providers={"daytona": "agent_provider_existing"},
         environments={},
-        agents={"registry-pr-review-sdk": "agent_existing"},
+        agents={"pr-review-agent": "agent_existing"},
     )
 
     actions = plan_registrations(desired, inventory)
@@ -38,5 +42,7 @@ def test_registration_plan_creates_only_missing_objects() -> None:
     assert [(action.kind, action.name) for action in actions] == [
         ("agent_environment", "daytona-sdk-pr-review"),
         ("agent_environment", "daytona-cli-skill-improver"),
+        ("agent_environment", "daytona-kiro-pr-review"),
         ("agent", "registry-skill-improver-cli"),
+        ("agent", "kiro-pr-review-agent"),
     ]

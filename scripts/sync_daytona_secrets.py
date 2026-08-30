@@ -15,8 +15,12 @@ def main() -> int:
     client = Daytona(DaytonaConfig(api_key=daytona_key))
     mappings = (
         (
-            "registry-sdk-agent-key",
-            keychain.get(service="atlan/registry-pr-review-sdk-agent", account=ACCOUNT).decode(),
+            "pr-review-agent-key",
+            keychain.get(service="atlan/pr-review-agent", account=ACCOUNT).decode(),
+        ),
+        (
+            "kiro-pr-review-agent-key",
+            keychain.get(service="atlan/kiro-pr-review-agent", account=ACCOUNT).decode(),
         ),
         (
             "registry-cli-agent-key",

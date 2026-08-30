@@ -1,4 +1,4 @@
-name: registry-pr-review-sdk
+name: pr-review-agent
 display_name: Governed PR Review Agent
 framework: langgraph
 framework_id: agent_framework_01m09v3ncvey0a4ndx008we9kr
@@ -7,6 +7,8 @@ provider: daytona
 environment: daytona-sdk-pr-review
 skills:
   - secure-pr-review@1
+  - test-impact-analysis@1
+  - review-evidence-summary@1
 entrypoint: python -m registry_pr_review_demo.factory_review
 network:
   mode: limited

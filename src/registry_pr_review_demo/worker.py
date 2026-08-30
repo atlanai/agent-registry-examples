@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import cast
@@ -10,6 +11,7 @@ import atlan_ai
 from atlan_ai.client import AtlanAI
 from atlan_ai.langchain import CallbackHandler
 
+from registry_pr_review_demo.agent_evidence import AgentEvidenceClient
 from registry_pr_review_demo.cli_trace import CliTraceSubmitter
 from registry_pr_review_demo.graph import ReviewAgent
 from registry_pr_review_demo.improver import ImprovementAgent, TraceReader, TraceSubmitter
@@ -25,7 +27,7 @@ from registry_pr_review_demo.models import (
     SkillPackage,
 )
 from registry_pr_review_demo.registration import DATA_WORKSPACE_ID
-from registry_pr_review_demo.sdk_trace import SdkReviewTracer
+from registry_pr_review_demo.sdk_trace import AgentReviewTracer, SdkReviewTracer
 from registry_pr_review_demo.trace_reader import AtlanCliTraceReader
 
 MAX_JOB_BYTES = 4_000_000
@@ -122,6 +124,73 @@ def run_improver_job(
     }
 
 
+def run_kiro_trace_job(raw_payload: Mapping[str, object], *, client: AtlanAI) -> dict[str, object]:
+    if not os.environ.get("ATLAN_API_KEY"):
+        raise RuntimeError("Kiro trace mode requires ATLAN_API_KEY")
+    result = _mapping(raw_payload.get("result"), "result")
+    tool_names = tuple(
+        _string_value(item, "tool name")
+        for item in _sequence(raw_payload.get("tool_names", []), "tool_names")
+    )
+    if any(name not in {"read", "grep"} for name in tool_names):
+        raise ValueError("Kiro trace contains a disallowed tool")
+    configured: list[tuple[str, SkillFingerprint]] = []
+    for raw in _sequence(raw_payload.get("skills"), "skills"):
+        skill = _mapping(raw, "skill")
+        configured.append(
+            (
+                _string(skill, "id"),
+                SkillFingerprint(
+                    name=_string(skill, "name"),
+                    semantic_version=_string(skill, "semantic_version"),
+                    registry_version=_integer(skill, "version"),
+                    source_digest=_string(skill, "source_digest"),
+                    skillmd_sha256=_string(skill, "skillmd_sha256"),
+                ),
+            )
+        )
+    observed = {
+        (
+            _string(_mapping(item, "skills_used item"), "id"),
+            _integer(_mapping(item, "skills_used item"), "version"),
+            _string(_mapping(item, "skills_used item"), "source_digest"),
+        )
+        for item in _sequence(result.get("skills_used"), "skills_used")
+    }
+    expected = {
+        (skill_id, fingerprint.registry_version, fingerprint.source_digest)
+        for skill_id, fingerprint in configured
+    }
+    if observed != expected:
+        raise ValueError("Kiro reported different skill fingerprints than the configured run")
+    raw_attributes = _mapping(raw_payload.get("attributes", {}), "attributes")
+    allowed_attribute_names = {
+        "github.repository",
+        "github.run_id",
+        "git.commit.sha",
+        "daytona.sandbox.id",
+        "review.case_id",
+    }
+    attributes = {
+        key: _string_value(value, key)
+        for key, value in raw_attributes.items()
+        if key in allowed_attribute_names
+    }
+    tracer = AgentReviewTracer(client)
+    with tracer.review(
+        agent_id=_string(raw_payload, "agent_id"),
+        runtime="kiro-cli-daytona",
+        session_id=_string(raw_payload, "session_id"),
+        trace_name="Kiro PR review",
+        skills=configured,
+        attributes=attributes,
+    ) as trace_run:
+        trace_run.complete(result, tool_names)
+    output = dict(result)
+    output["trace_id"] = trace_run.trace_id
+    return output
+
+
 def _parse_job(
     raw_payload: Mapping[str, object],
 ) -> tuple[
@@ -202,6 +271,33 @@ def main() -> int:
     typed_payload = cast(dict[str, object], payload)
     if typed_payload.get("job_type") == "improve":
         result = run_improver_job(typed_payload)
+    elif typed_payload.get("job_type") == "kiro_trace":
+        client = atlan_ai.init(service_name="kiro-pr-review-agent", trace_content=False)
+        try:
+            result = run_kiro_trace_job(typed_payload, client=client)
+            client.flush()
+        finally:
+            client.shutdown()
+        attributes = _mapping(typed_payload.get("attributes", {}), "attributes")
+        result_model = result.get("model")
+        model_id = result_model if isinstance(result_model, str) else None
+        session_id, output_id = AgentEvidenceClient.from_environment().record_and_verify(
+            agent_id=_string(typed_payload, "agent_id"),
+            provider_id=_string(typed_payload, "provider_id"),
+            environment_id=_string(typed_payload, "environment_id"),
+            external_session_id=_string(typed_payload, "session_id"),
+            sandbox_id=_string(attributes, "daytona.sandbox.id"),
+            trace_id=_string(result, "trace_id"),
+            skill_ids=[
+                _string(_mapping(raw, "skill"), "id")
+                for raw in _sequence(typed_payload.get("skills"), "skills")
+            ],
+            output_url=_string(typed_payload, "output_url"),
+            model_id=model_id,
+            decision=_string(result, "decision"),
+        )
+        result["session_id"] = session_id
+        result["output_id"] = output_id
     elif typed_payload.get("trace_mode") == "sdk":
         client = atlan_ai.init(
             service_name="registry-pr-review-sdk",
@@ -256,6 +352,12 @@ def _optional_string(data: Mapping[str, object], key: str) -> str | None:
         return None
     if not isinstance(value, str):
         raise ValueError(f"{key} must be a string")
+    return value
+
+
+def _string_value(value: object, name: str) -> str:
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{name} must be a non-empty string")
     return value
 
 

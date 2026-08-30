@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from collections.abc import Mapping, Sequence
@@ -12,6 +13,7 @@ from registry_pr_review_demo.cli_skill_loader import AtlanCliSkillLoader
 from registry_pr_review_demo.cli_trace import run_atlanai_cli
 from registry_pr_review_demo.controller import ReviewController
 from registry_pr_review_demo.daytona_runtime import DaytonaRuntime
+from registry_pr_review_demo.kiro_runtime import KiroDaytonaRuntime
 from registry_pr_review_demo.knowledge import DirectoryKnowledgeSource
 from registry_pr_review_demo.models import (
     ReviewRequest,
@@ -40,6 +42,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _run_sdk(args)
     if command == "run-sdk":
         return _run_sdk(args)
+    if command == "run-kiro":
+        return _run_kiro(args)
     if command == "analyze-traces":
         return _analyze_traces(args)
     if command == "run-improver-cli":
@@ -89,6 +93,18 @@ def _parser() -> argparse.ArgumentParser:
     run_sdk.add_argument("--output", required=True, type=Path)
     run_sdk.add_argument("--case-id", default="sql-format-interpolation")
     run_sdk.add_argument("--evaluations", type=Path, default=Path("examples/evaluations.json"))
+
+    run_kiro = subparsers.add_parser(
+        "run-kiro", help="Run the independent Kiro PR reviewer inside Daytona"
+    )
+    run_kiro.add_argument(
+        "--diff", type=Path, default=Path("factory/fixtures/risky-order-change.diff")
+    )
+    run_kiro.add_argument("--references", type=Path, default=Path("registry/skill-references.json"))
+    run_kiro.add_argument("--state", type=Path, default=Path("registry/state.json"))
+    run_kiro.add_argument("--kiro-binary", type=Path, default=Path("work/kiro/kiro-cli"))
+    run_kiro.add_argument("--output", type=Path, required=True)
+    run_kiro.add_argument("--case-id", default="sql-format-interpolation")
 
     analyze = subparsers.add_parser(
         "analyze-traces", help="Create an approval-gated skill patch proposal"
@@ -227,7 +243,7 @@ def _run_sdk(args: argparse.Namespace) -> int:
     package_dir = Path(registry_pr_review_demo.__file__).parent
     project_root = package_dir.parents[1]
     sdk_wheel = project_root / "vendor/atlan-ai/atlan_ai-0.1.0-py3-none-any.whl"
-    secret_name = os.environ.get("DAYTONA_SDK_AGENT_SECRET", "registry-sdk-agent-key")
+    secret_name = os.environ.get("DAYTONA_SDK_AGENT_SECRET", "pr-review-agent-key")
     controller = ReviewController(
         registry=_FixedSkillRegistry(loaded.reference, loaded.package),
         knowledge=DirectoryKnowledgeSource(cast(Path, args.knowledge_root)),
@@ -252,6 +268,153 @@ def _run_sdk(args: argparse.Namespace) -> int:
     )
     _write_json(cast(Path, args.output), result)
     return 0
+
+
+KIRO_REVIEW_SKILLS = (
+    "secure-pr-review",
+    "test-impact-analysis",
+    "review-evidence-summary",
+)
+KIRO_RUNTIME_DOMAINS = (
+    "agentgateway.atlan.engineering",
+    "prod.us-east-1.auth.desktop.kiro.dev",
+    "prod.us-east-1.telemetry.desktop.kiro.dev",
+    "q.us-east-1.amazonaws.com",
+    "runtime.us-east-1.kiro.dev",
+    "management.us-east-1.kiro.dev",
+    "telemetry.us-east-1.kiro.dev",
+)
+
+
+def _run_kiro(args: argparse.Namespace) -> int:
+    _required_env("DAYTONA_API_KEY")
+    project_root = Path(registry_pr_review_demo.__file__).parent.parents[1]
+    references = _read_json(cast(Path, args.references))
+    state = _read_json(cast(Path, args.state))
+    skills = [_verified_skill(name, references, project_root) for name in KIRO_REVIEW_SKILLS]
+    agent_ids = _mapping_value(state.get("agent_ids"), "agent_ids")
+    agent_id = agent_ids.get("kiro-pr-review-agent")
+    if not isinstance(agent_id, str) or not agent_id.startswith("agent_"):
+        raise RuntimeError("Registry state is missing the Kiro Agent identity")
+    provider_id = state.get("provider_id")
+    environment_ids = _mapping_value(state.get("environment_ids"), "environment_ids")
+    environment_id = environment_ids.get("daytona-kiro-pr-review")
+    if not isinstance(provider_id, str) or not provider_id.startswith("agent_provider_"):
+        raise RuntimeError("Registry state is missing the Daytona provider identity")
+    if not isinstance(environment_id, str) or not environment_id.startswith("agent_environment_"):
+        raise RuntimeError("Registry state is missing the Kiro environment identity")
+    diff_path = cast(Path, args.diff)
+    if diff_path.stat().st_size > 2_000_000:
+        raise ValueError("diff exceeds the 2 MB demo limit")
+    workspace_files: dict[str, bytes] = {
+        "/workspace/change.diff": diff_path.read_bytes(),
+        "/workspace/.kiro/agents/pr-review.md": (
+            project_root / ".kiro/agents/pr-review.md"
+        ).read_bytes(),
+    }
+    for name in KIRO_REVIEW_SKILLS:
+        skill_root = project_root / "skills" / name
+        for path in sorted(skill_root.rglob("*")):
+            if path.is_file() and not path.is_symlink():
+                relative = path.relative_to(skill_root).as_posix()
+                workspace_files[f"/workspace/.kiro/skills/{name}/{relative}"] = path.read_bytes()
+    service_root = project_root / "software/order-service"
+    for path in sorted(service_root.rglob("*")):
+        if path.is_file() and not path.is_symlink() and "__pycache__" not in path.parts:
+            relative = path.relative_to(service_root).as_posix()
+            workspace_files[f"/workspace/software/order-service/{relative}"] = path.read_bytes()
+    contract = {
+        "decision_values": ["approve", "comment", "changes_requested"],
+        "skills_used": [
+            {
+                "id": skill["id"],
+                "version": skill["version"],
+                "source_digest": skill["source_digest"],
+            }
+            for skill in skills
+        ],
+    }
+    workspace_files["/workspace/review-contract.json"] = json.dumps(
+        contract, separators=(",", ":"), sort_keys=True
+    ).encode()
+    run_id = os.environ.get("GITHUB_RUN_ID", "local")
+    commit_sha = os.environ.get("GITHUB_SHA", "0" * 40)
+    repository = os.environ.get("GITHUB_REPOSITORY", "atlanai/software-factory-demo")
+    trace_payload: dict[str, object] = {
+        "agent_id": agent_id,
+        "provider_id": provider_id,
+        "environment_id": environment_id,
+        "session_id": f"github-{run_id}-kiro-review",
+        "output_url": (
+            f"https://github.com/{repository}"
+            + (f"/actions/runs/{run_id}" if run_id != "local" else "")
+        ),
+        "skills": skills,
+        "attributes": {
+            "github.repository": repository,
+            "github.run_id": run_id,
+            "git.commit.sha": commit_sha,
+            "review.case_id": cast(str, args.case_id),
+        },
+    }
+    runtime = KiroDaytonaRuntime(
+        kiro_binary=cast(Path, args.kiro_binary),
+        worker_archive=build_worker_archive(Path(registry_pr_review_demo.__file__).parent),
+        sdk_wheel=project_root / "vendor/atlan-ai/atlan_ai-0.1.0-py3-none-any.whl",
+        workspace_files=workspace_files,
+        secrets={
+            "ATLAN_API_KEY": "kiro-pr-review-agent-key",
+            "KIRO_API_KEY": "kiro-api-key",
+        },
+        allowed_domains=KIRO_RUNTIME_DOMAINS,
+        workspace_id=DATA_WORKSPACE_ID,
+    )
+    result = runtime.run(trace_payload)
+    _write_json(cast(Path, args.output), result)
+    return 0
+
+
+def _verified_skill(
+    name: str, references: Mapping[str, object], project_root: Path
+) -> dict[str, object]:
+    raw = _mapping_value(references.get(name), f"skill reference {name}")
+    skill_id = raw.get("id")
+    version = raw.get("version")
+    source_digest = raw.get("source_digest")
+    semantic_version = raw.get("semantic_version")
+    skillmd_sha256 = raw.get("skillmd_sha256")
+    if (
+        not isinstance(skill_id, str)
+        or not skill_id.startswith("skill_")
+        or isinstance(version, bool)
+        or not isinstance(version, int)
+        or version < 1
+        or not isinstance(source_digest, str)
+        or len(source_digest) != 64
+        or not isinstance(semantic_version, str)
+        or not isinstance(skillmd_sha256, str)
+        or len(skillmd_sha256) != 64
+    ):
+        raise RuntimeError(f"Registry fingerprint for {name} is incomplete")
+    local_digest = hashlib.sha256(
+        (project_root / "skills" / name / "SKILL.md").read_bytes()
+    ).hexdigest()
+    if local_digest != skillmd_sha256:
+        raise RuntimeError(f"local {name} SKILL.md differs from the Registry fingerprint")
+    return {
+        "name": name,
+        "id": skill_id,
+        "version": version,
+        "source_digest": source_digest,
+        "semantic_version": semantic_version,
+        "skillmd_sha256": skillmd_sha256,
+    }
+
+
+def _mapping_value(value: object, name: str) -> dict[str, object]:
+    if not isinstance(value, dict):
+        raise ValueError(f"{name} must be an object")
+    return {str(key): item for key, item in cast(dict[object, object], value).items()}
 
 
 class _NoopTraceRecorder:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Sequence
 from pathlib import Path
@@ -414,3 +415,80 @@ def test_run_improver_cli_writes_proposal_bundle(
         json.loads((output_dir / "proposal.json").read_text(encoding="utf-8"))["approved"] is False
     )
     assert (output_dir / "run.json").is_file()
+
+
+def test_run_kiro_packages_shared_skills_and_agent_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("DAYTONA_API_KEY", "daytona-test")
+    project_root = Path(cli.registry_pr_review_demo.__file__).parent.parents[1]
+    references: dict[str, object] = {}
+    for index, name in enumerate(cli.KIRO_REVIEW_SKILLS, start=1):
+        references[name] = {
+            "id": f"skill_{name}",
+            "version": index,
+            "source_digest": f"{index}" * 64,
+            "semantic_version": "0.1.1",
+            "skillmd_sha256": hashlib.sha256(
+                (project_root / "skills" / name / "SKILL.md").read_bytes()
+            ).hexdigest(),
+        }
+    reference_path = tmp_path / "references.json"
+    reference_path.write_text(json.dumps(references), encoding="utf-8")
+    state_path = tmp_path / "state.json"
+    state_path.write_text(
+        json.dumps(
+            {
+                "agent_ids": {"kiro-pr-review-agent": "agent_kiro"},
+                "provider_id": "agent_provider_daytona",
+                "environment_ids": {"daytona-kiro-pr-review": "agent_environment_kiro"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    diff_path = tmp_path / "change.diff"
+    diff_path.write_text("+ unsafe = eval(value)\n", encoding="utf-8")
+    output_path = tmp_path / "result.json"
+    captured: dict[str, object] = {}
+
+    class Runtime:
+        def __init__(self, **kwargs: object) -> None:
+            captured.update(kwargs)
+
+        def run(self, payload: object) -> dict[str, object]:
+            captured["payload"] = payload
+            return {"decision": "changes_requested", "findings": [], "trace_id": "a" * 32}
+
+    monkeypatch.setattr(cli, "KiroDaytonaRuntime", Runtime)
+    monkeypatch.setattr(cli, "build_worker_archive", fake_build_worker_archive)
+
+    assert (
+        main(
+            [
+                "run-kiro",
+                "--diff",
+                str(diff_path),
+                "--references",
+                str(reference_path),
+                "--state",
+                str(state_path),
+                "--output",
+                str(output_path),
+            ]
+        )
+        == 0
+    )
+
+    assert cast(dict[str, str], captured["secrets"]) == {
+        "ATLAN_API_KEY": "kiro-pr-review-agent-key",
+        "KIRO_API_KEY": "kiro-api-key",
+    }
+    workspace_files = cast(dict[str, bytes], captured["workspace_files"])
+    assert "/workspace/review-contract.json" in workspace_files
+    assert all(
+        f"/workspace/.kiro/skills/{name}/SKILL.md" in workspace_files
+        for name in cli.KIRO_REVIEW_SKILLS
+    )
+    payload = cast(dict[str, object], captured["payload"])
+    assert payload["agent_id"] == "agent_kiro"
+    assert len(cast(list[object], payload["skills"])) == 3

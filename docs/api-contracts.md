@@ -9,8 +9,9 @@ environment credential supplied to the process.
 | Operation | Purpose |
 |---|---|
 | `POST agent:/providers` | Register the catalog-only Daytona provider |
-| `POST agent:/environments` | Register two governed sandbox declarations |
-| `POST agent:/agents` | Register both identity-bearing agents and capture create-time keys |
+| `POST agent:/agent-frameworks` | Register the `kiro-cli` framework |
+| `POST agent:/environments` | Register three governed sandbox declarations |
+| `POST agent:/agents` | Register identity-bearing agents and capture create-time keys |
 | `PUT registry:/workspaces/{workspace}/members/{agent}` | Grant each machine principal `member` |
 | `POST registry:/artifacts/{kind}/{id}/relationships` | Link each agent to its governing skill |
 
@@ -62,7 +63,7 @@ facade's `access` block as explanatory metadata, not an authorization decision.
 ## Sessions and Outputs
 
 Each execution creates one `session` with `subject_kind=agent`, the registered agent id, status,
-and `external_session_id`. Safe summary messages are attached by sequence number. Deliverable bytes
-are uploaded as `file` artifacts; `output` artifacts pin the exact file version and carry producer
-agent/session lineage.
-
+environment, provider, and the same `external_session_id` propagated on every span. The Kiro result
+is registered as a link-mode `output` pointing to the sanitized GitHub Actions artifact and carrying
+producer Agent and Session lineage. The run then reads back the Session, Output, Agent trace facade,
+and every used Skill trace facade before reporting success.

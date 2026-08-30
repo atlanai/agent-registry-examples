@@ -1,0 +1,3 @@
+interface:
+  display_name: "Test Impact Analysis"
+  short_description: "Map a PR diff to focused regression tests"

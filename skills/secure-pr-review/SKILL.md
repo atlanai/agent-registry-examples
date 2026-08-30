@@ -2,7 +2,7 @@
 name: secure-pr-review
 description: Review pull-request additions against synthetic secure-engineering standards.
 metadata:
-  skill_version: "0.1.0"
+  skill_version: "0.1.1"
 ---
 
 # Secure PR review
