@@ -42,7 +42,7 @@ jobs:
 
       - name: Publish skills
         if: steps.credential.outputs.configured == 'true'
-        uses: atlanai/agent-registry-action@c15fee277eb5606f08546f0deea0b2f5b74ea26b # v0.1.1
+        uses: atlanai/agent-registry-action@c172cabec2c4fb70d96fbe210d538e771aa7b4a0 # fix/installer-digest-v0.1.2
         with:
           working-directory: .
           prune: "false"

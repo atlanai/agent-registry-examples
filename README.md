@@ -59,11 +59,12 @@ proposal; a human still owns the policy change and the merge.
 6. Produce a Markdown summary and machine-readable review artifact.
 7. Submit an Atlan trace when `ATLANAI_TOKEN` is configured.
 
-`Sync skills to Atlan` is a separate least-privilege workflow. It publishes only from `main`, uses
-full Git history for provenance, and pins `atlanai/agent-registry-action` to the immutable v0.1.1
-commit. Pull requests get a credential-isolated Registry preflight comment; PR code never receives
-the publishing credential. Add the repository secret `ATLANAI_TOKEN` to enable publication; without
-it, the workflow reports that it is ready but uncredentialed and exits without publishing.
+`Sync skills to Atlan` is a separate least-privilege workflow. It publishes only from `main` and
+uses full Git history for provenance. Until v0.1.2 is merged, both workflows pin the signed
+`fix/installer-digest-v0.1.2` commit rather than a moving branch name. Pull requests get a
+credential-isolated Registry preflight comment; PR code never receives the publishing credential.
+Add the repository secret `ATLANAI_TOKEN` to enable publication; without it, the workflow reports
+that it is ready but uncredentialed and exits without publishing.
 
 ## Repository map
 
