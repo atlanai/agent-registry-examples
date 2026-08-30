@@ -36,7 +36,7 @@ exact Registry version. It does not assemble a bundle URL or bearer header.
 ## Trace ingest
 
 The SDK producer uses `atlan_ai.init()` with the Data workspace and the registered agent key. The
-CLI producer submits standard OTLP JSON:
+Kiro producer uses the pinned `atlanai` CLI inside Daytona to submit standard OTLP JSON:
 
 ```bash
 atlanai api post /otel/v1/traces \

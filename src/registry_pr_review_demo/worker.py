@@ -5,14 +5,19 @@ import json
 import os
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import cast
+from typing import Protocol, cast
 
 import atlan_ai
 from atlan_ai.client import AtlanAI
 from atlan_ai.langchain import CallbackHandler
 
 from registry_pr_review_demo.agent_evidence import AgentEvidenceClient
-from registry_pr_review_demo.cli_trace import CliTraceSubmitter
+from registry_pr_review_demo.cli_trace import (
+    CliTraceReceipt,
+    CliTraceSubmitter,
+    KiroCliTraceRecord,
+    KiroCliTraceSubmitter,
+)
 from registry_pr_review_demo.graph import ReviewAgent
 from registry_pr_review_demo.improver import ImprovementAgent, TraceReader, TraceSubmitter
 from registry_pr_review_demo.models import (
@@ -27,10 +32,14 @@ from registry_pr_review_demo.models import (
     SkillPackage,
 )
 from registry_pr_review_demo.registration import DATA_WORKSPACE_ID
-from registry_pr_review_demo.sdk_trace import AgentReviewTracer, SdkReviewTracer
+from registry_pr_review_demo.sdk_trace import SdkReviewTracer
 from registry_pr_review_demo.trace_reader import AtlanCliTraceReader
 
 MAX_JOB_BYTES = 4_000_000
+
+
+class KiroTraceSubmitter(Protocol):
+    def submit(self, record: KiroCliTraceRecord) -> CliTraceReceipt: ...
 
 
 class EmbeddedRegistry:
@@ -124,9 +133,13 @@ def run_improver_job(
     }
 
 
-def run_kiro_trace_job(raw_payload: Mapping[str, object], *, client: AtlanAI) -> dict[str, object]:
-    if not os.environ.get("ATLAN_API_KEY"):
-        raise RuntimeError("Kiro trace mode requires ATLAN_API_KEY")
+def run_kiro_trace_job(
+    raw_payload: Mapping[str, object],
+    *,
+    submitter: KiroTraceSubmitter | None = None,
+) -> dict[str, object]:
+    if not os.environ.get("ATLAN_API_KEY") or not os.environ.get("ATLANAI_TOKEN"):
+        raise RuntimeError("Kiro trace mode requires Agent credentials for REST and CLI")
     result = _mapping(raw_payload.get("result"), "result")
     tool_names = tuple(
         _string_value(item, "tool name")
@@ -176,18 +189,22 @@ def run_kiro_trace_job(raw_payload: Mapping[str, object], *, client: AtlanAI) ->
         for key, value in raw_attributes.items()
         if key in allowed_attribute_names
     }
-    tracer = AgentReviewTracer(client)
-    with tracer.review(
-        agent_id=_string(raw_payload, "agent_id"),
-        runtime="kiro-cli-daytona",
-        session_id=_string(raw_payload, "session_id"),
-        trace_name="Kiro PR review",
-        skills=configured,
-        attributes=attributes,
-    ) as trace_run:
-        trace_run.complete(result, tool_names)
+    findings = _sequence(result.get("findings"), "findings")
+    receipt = (submitter or KiroCliTraceSubmitter(workspace_id=DATA_WORKSPACE_ID)).submit(
+        KiroCliTraceRecord(
+            session_id=_string(raw_payload, "session_id"),
+            agent_id=_string(raw_payload, "agent_id"),
+            skills=tuple(configured),
+            attributes=attributes,
+            decision=_string(result, "decision"),
+            finding_count=len(findings),
+            tool_names=tool_names,
+        )
+    )
+    if not receipt.accepted:
+        raise RuntimeError("Kiro CLI REST trace was not accepted")
     output = dict(result)
-    output["trace_id"] = trace_run.trace_id
+    output["trace_id"] = receipt.trace_id
     return output
 
 
@@ -272,12 +289,7 @@ def main() -> int:
     if typed_payload.get("job_type") == "improve":
         result = run_improver_job(typed_payload)
     elif typed_payload.get("job_type") == "kiro_trace":
-        client = atlan_ai.init(service_name="kiro-pr-review-agent", trace_content=False)
-        try:
-            result = run_kiro_trace_job(typed_payload, client=client)
-            client.flush()
-        finally:
-            client.shutdown()
+        result = run_kiro_trace_job(typed_payload)
         attributes = _mapping(typed_payload.get("attributes", {}), "attributes")
         result_model = result.get("model")
         model_id = result_model if isinstance(result_model, str) else None

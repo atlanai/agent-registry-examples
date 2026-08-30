@@ -481,6 +481,7 @@ def test_run_kiro_packages_shared_skills_and_agent_identity(
 
     assert cast(dict[str, str], captured["secrets"]) == {
         "ATLAN_API_KEY": "kiro-pr-review-agent-key",
+        "ATLANAI_TOKEN": "kiro-pr-review-agent-key",
         "KIRO_API_KEY": "kiro-api-key",
     }
     workspace_files = cast(dict[str, bytes], captured["workspace_files"])

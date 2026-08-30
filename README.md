@@ -69,8 +69,9 @@ proposal; a human still owns the policy change and the merge.
 
 `Kiro PR Review in Daytona` is an independent manual acceptance lane. It downloads only the pinned
 Kiro 2.20.1 archive, verifies both archive and launcher SHA-256 values, uploads the synthetic service,
-diff, exact skill bundles, custom-agent policy, and trace worker to Daytona, then runs Kiro with only
-`read` and `grep`. The run fails if Agent identity, skill fingerprints, structured output, Session,
+diff, exact skill bundles, custom-agent policy, and the pinned `atlanai` CLI to Daytona. Kiro runs
+with only `read` and `grep`; the CLI then submits sanitized OTLP JSON through the Gateway REST API.
+The run fails if Agent identity, skill fingerprints, structured output, Session,
 Output, or Agent/Skill trace readback is incomplete.
 
 `Sync skills to Atlan` is a separate least-privilege workflow. It publishes only from `main` and

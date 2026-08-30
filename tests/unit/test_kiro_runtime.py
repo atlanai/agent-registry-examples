@@ -115,8 +115,10 @@ class FakeDaytona:
 
 def test_kiro_daytona_runtime_is_read_only_traced_and_ephemeral(tmp_path: Path) -> None:
     kiro = tmp_path / "kiro-cli"
+    cli = tmp_path / "atlanai"
     wheel = tmp_path / "atlan_ai-0.1.0-py3-none-any.whl"
     kiro.write_bytes(b"binary")
+    cli.write_bytes(b"cli")
     wheel.write_bytes(b"wheel")
     traced = {**kiro_result(), "trace_id": "b" * 32}
     sandbox = FakeSandbox(
@@ -126,6 +128,7 @@ def test_kiro_daytona_runtime_is_read_only_traced_and_ephemeral(tmp_path: Path) 
     daytona = FakeDaytona(sandbox)
     runtime = KiroDaytonaRuntime(
         kiro_binary=kiro,
+        cli_binary=cli,
         worker_archive=b"worker",
         sdk_wheel=wheel,
         workspace_files={
@@ -134,6 +137,7 @@ def test_kiro_daytona_runtime_is_read_only_traced_and_ephemeral(tmp_path: Path) 
         },
         secrets={
             "ATLAN_API_KEY": "kiro-pr-review-agent-key",
+            "ATLANAI_TOKEN": "kiro-pr-review-agent-key",
             "KIRO_API_KEY": "kiro-api-key",
         },
         allowed_domains=("agentgateway.atlan.engineering", "runtime.us-east-1.kiro.dev"),
@@ -156,6 +160,7 @@ def test_kiro_daytona_runtime_is_read_only_traced_and_ephemeral(tmp_path: Path) 
     assert params.ephemeral is True
     assert params.secrets == {
         "ATLAN_API_KEY": "kiro-pr-review-agent-key",
+        "ATLANAI_TOKEN": "kiro-pr-review-agent-key",
         "KIRO_API_KEY": "kiro-api-key",
     }
     assert daytona.deleted == [sandbox]
@@ -178,17 +183,24 @@ def test_kiro_daytona_runtime_is_read_only_traced_and_ephemeral(tmp_path: Path) 
 
 def test_kiro_daytona_runtime_deletes_sandbox_on_kiro_failure(tmp_path: Path) -> None:
     kiro = tmp_path / "kiro-cli"
+    cli = tmp_path / "atlanai"
     wheel = tmp_path / "atlan_ai.whl"
     kiro.write_bytes(b"binary")
+    cli.write_bytes(b"cli")
     wheel.write_bytes(b"wheel")
     sandbox = FakeSandbox([FakeResponse(3)], b"{}")
     daytona = FakeDaytona(sandbox)
     runtime = KiroDaytonaRuntime(
         kiro_binary=kiro,
+        cli_binary=cli,
         worker_archive=b"worker",
         sdk_wheel=wheel,
         workspace_files={"/workspace/change.diff": b"safe"},
-        secrets={"ATLAN_API_KEY": "agent-key", "KIRO_API_KEY": "kiro-key"},
+        secrets={
+            "ATLAN_API_KEY": "agent-key",
+            "ATLANAI_TOKEN": "agent-key",
+            "KIRO_API_KEY": "kiro-key",
+        },
         allowed_domains=("agentgateway.atlan.engineering",),
         workspace_id="workspace_demo",
         client_factory=lambda: daytona,

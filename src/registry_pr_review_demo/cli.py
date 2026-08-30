@@ -359,11 +359,13 @@ def _run_kiro(args: argparse.Namespace) -> int:
     }
     runtime = KiroDaytonaRuntime(
         kiro_binary=cast(Path, args.kiro_binary),
+        cli_binary=project_root / "vendor/atlanai/atlanai-linux-amd64",
         worker_archive=build_worker_archive(Path(registry_pr_review_demo.__file__).parent),
         sdk_wheel=project_root / "vendor/atlan-ai/atlan_ai-0.1.0-py3-none-any.whl",
         workspace_files=workspace_files,
         secrets={
             "ATLAN_API_KEY": "kiro-pr-review-agent-key",
+            "ATLANAI_TOKEN": "kiro-pr-review-agent-key",
             "KIRO_API_KEY": "kiro-api-key",
         },
         allowed_domains=KIRO_RUNTIME_DOMAINS,

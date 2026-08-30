@@ -151,6 +151,7 @@ class KiroDaytonaRuntime:
         self,
         *,
         kiro_binary: Path,
+        cli_binary: Path,
         worker_archive: bytes,
         sdk_wheel: Path,
         workspace_files: Mapping[str, bytes],
@@ -160,6 +161,7 @@ class KiroDaytonaRuntime:
         client_factory: Callable[[], DaytonaClient] | None = None,
     ) -> None:
         self._kiro_binary = kiro_binary
+        self._cli_binary = cli_binary
         self._worker_archive = worker_archive
         self._sdk_wheel = sdk_wheel
         self._workspace_files = dict(workspace_files)
@@ -167,8 +169,8 @@ class KiroDaytonaRuntime:
         self._allowed_domains = allowed_domains
         self._workspace_id = workspace_id
         self._client_factory = client_factory or cast(Callable[[], DaytonaClient], Daytona)
-        if set(self._secrets) != {"ATLAN_API_KEY", "KIRO_API_KEY"}:
-            raise ValueError("Kiro Daytona runtime requires Atlan and Kiro secret mappings")
+        if set(self._secrets) != {"ATLAN_API_KEY", "ATLANAI_TOKEN", "KIRO_API_KEY"}:
+            raise ValueError("Kiro Daytona runtime requires REST, CLI, and Kiro secret mappings")
         if not self._workspace_id.startswith("workspace_"):
             raise ValueError("Kiro Daytona runtime requires a Registry workspace id")
         if any(not re.fullmatch(r"[a-z0-9.-]+", domain) for domain in allowed_domains):
@@ -188,9 +190,11 @@ class KiroDaytonaRuntime:
         image = (
             Image.debian_slim("3.12")
             .add_local_file(self._kiro_binary, "/usr/local/bin/kiro-cli")
+            .add_local_file(self._cli_binary, "/usr/local/bin/atlanai")
             .add_local_file(self._sdk_wheel, wheel_remote)
             .run_commands(
                 "chmod 0755 /usr/local/bin/kiro-cli",
+                "chmod 0755 /usr/local/bin/atlanai",
                 f"python -m pip install {wheel_remote}",
             )
         )
@@ -205,6 +209,7 @@ class KiroDaytonaRuntime:
             labels={"purpose": "software-factory-kiro-review"},
             env_vars={
                 "ATLAN_BASE_URL": "https://agentgateway.atlan.engineering",
+                "ATLANAI_GATEWAY_URL": "https://agentgateway.atlan.engineering",
                 "ATLAN_TRACE_CONTENT": "false",
                 "ATLAN_WORKSPACE_ID": self._workspace_id,
             },

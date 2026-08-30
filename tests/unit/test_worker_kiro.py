@@ -1,25 +1,25 @@
 from __future__ import annotations
 
-import atlan_ai
 import pytest
-from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
+from registry_pr_review_demo.cli_trace import CliTraceReceipt, KiroCliTraceRecord
 from registry_pr_review_demo.worker import run_kiro_trace_job
 
 
-def test_kiro_trace_worker_emits_agent_and_multiple_skill_spans(
+class Submitter:
+    def __init__(self) -> None:
+        self.record: KiroCliTraceRecord | None = None
+
+    def submit(self, record: KiroCliTraceRecord) -> CliTraceReceipt:
+        self.record = record
+        return CliTraceReceipt(accepted=True, trace_id="b" * 32)
+
+
+def test_kiro_trace_worker_submits_agent_and_skill_evidence_through_cli(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("ATLAN_API_KEY", "agent-test-key")
-    exporter = InMemorySpanExporter()
-    client = atlan_ai.init(
-        service_name="kiro-pr-review-agent-test",
-        api_key="agent-test-key",
-        base_url="https://agentgateway.example.com",
-        workspace_id="workspace_data",
-        trace_content=False,
-        span_exporter=exporter,
-    )
+    monkeypatch.setenv("ATLANAI_TOKEN", "agent-test-key")
     skills = [
         {
             "id": "skill_secure",
@@ -32,7 +32,7 @@ def test_kiro_trace_worker_emits_agent_and_multiple_skill_spans(
         {
             "id": "skill_tests",
             "name": "test-impact-analysis",
-            "semantic_version": "0.1.0",
+            "semantic_version": "0.1.1",
             "version": 1,
             "source_digest": "c" * 64,
             "skillmd_sha256": "d" * 64,
@@ -57,31 +57,25 @@ def test_kiro_trace_worker_emits_agent_and_multiple_skill_spans(
             ],
         },
     }
+    submitter = Submitter()
 
-    result = run_kiro_trace_job(payload, client=client)
+    result = run_kiro_trace_job(payload, submitter=submitter)
 
-    client.flush()
-    client.shutdown()
-    assert result["trace_id"]
-    spans = exporter.get_finished_spans()
-    root = next(span for span in spans if span.name == "software_factory.pr_review")
-    skill_spans = [span for span in spans if span.name == "review.skill"]
-    assert root.attributes is not None
-    assert root.attributes["atlan.agent.id"] == "agent_kiro"
-    assert root.attributes["review.decision"] == "changes_requested"
-    assert {span.attributes["atlan.skill.id"] for span in skill_spans if span.attributes} == {
+    assert result["trace_id"] == "b" * 32
+    assert submitter.record is not None
+    assert submitter.record.agent_id == "agent_kiro"
+    assert submitter.record.tool_names == ("read", "grep")
+    assert {skill_id for skill_id, _ in submitter.record.skills} == {
         "skill_secure",
         "skill_tests",
     }
-    assert [
-        event.attributes["tool.name"]
-        for event in root.events
-        if event.name == "kiro.tool" and event.attributes is not None
-    ] == ["read", "grep"]
 
 
-def test_kiro_trace_worker_requires_agent_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_kiro_trace_worker_requires_rest_and_cli_agent_credentials(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("ATLAN_API_KEY", raising=False)
+    monkeypatch.delenv("ATLANAI_TOKEN", raising=False)
 
-    with pytest.raises(RuntimeError, match="requires ATLAN_API_KEY"):
-        run_kiro_trace_job({}, client=object())  # type: ignore[arg-type]
+    with pytest.raises(RuntimeError, match="REST and CLI"):
+        run_kiro_trace_job({})

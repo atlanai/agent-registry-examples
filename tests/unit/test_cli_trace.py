@@ -9,6 +9,9 @@ from registry_pr_review_demo.cli_trace import (
     CliCommandResult,
     CliTraceRecord,
     CliTraceSubmitter,
+    KiroCliTraceRecord,
+    KiroCliTraceSubmitter,
+    build_kiro_otlp_payload,
     build_otlp_payload,
 )
 from registry_pr_review_demo.models import EvaluationCase, ReviewDecision, SkillFingerprint
@@ -76,4 +79,55 @@ def test_cli_submitter_uses_atlanai_without_putting_a_token_in_arguments(tmp_pat
     assert "ATLANAI_TOKEN" not in " ".join(typed_args)
     assert "workspace_data" in " ".join(typed_args)
     assert receipt.accepted is True
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_kiro_cli_trace_uses_rest_with_agent_skills_and_sanitized_tools(
+    tmp_path: Path,
+) -> None:
+    fingerprint = SkillFingerprint(
+        name="secure-pr-review",
+        semantic_version="0.1.1",
+        registry_version=2,
+        source_digest="a" * 64,
+        skillmd_sha256="b" * 64,
+    )
+    record = KiroCliTraceRecord(
+        session_id="kiro-session",
+        agent_id="agent_kiro",
+        skills=(("skill_secure", fingerprint),),
+        attributes={"daytona.sandbox.id": "sandbox_demo"},
+        decision="changes_requested",
+        finding_count=1,
+        tool_names=("read", "grep"),
+    )
+    payload = build_kiro_otlp_payload(record, start_time_ns=1_000, end_time_ns=2_000)
+    spans = payload["resourceSpans"][0]["scopeSpans"][0]["spans"]
+    root_attributes = {
+        item["key"]: next(iter(item["value"].values())) for item in spans[0]["attributes"]
+    }
+    skill_attributes = {
+        item["key"]: next(iter(item["value"].values())) for item in spans[1]["attributes"]
+    }
+    assert spans[0]["name"] == "software_factory.pr_review"
+    assert root_attributes["atlan.agent.id"] == "agent_kiro"
+    assert root_attributes["daytona.sandbox.id"] == "sandbox_demo"
+    assert skill_attributes["atlan.skill.id"] == "skill_secure"
+    assert [event["attributes"][0]["value"]["stringValue"] for event in spans[0]["events"]] == [
+        "read",
+        "grep",
+    ]
+
+    observed: dict[str, object] = {}
+
+    def runner(args: Sequence[str]) -> CliCommandResult:
+        observed["args"] = tuple(args)
+        return CliCommandResult(0, '{"partialSuccess":{}}', "")
+
+    receipt = KiroCliTraceSubmitter(
+        workspace_id="workspace_data", runner=runner, temp_dir=tmp_path
+    ).submit(record)
+    args = cast(tuple[str, ...], observed["args"])
+    assert args[:4] == ("atlanai", "api", "post", "/otel/v1/traces")
+    assert receipt.trace_id
     assert list(tmp_path.iterdir()) == []
