@@ -1,0 +1,8 @@
+diff --git a/software/order-service/src/order_service/repository.py b/software/order-service/src/order_service/repository.py
+index 1111111..2222222 100644
+--- a/software/order-service/src/order_service/repository.py
++++ b/software/order-service/src/order_service/repository.py
+@@ -12,4 +12,7 @@ class OrderRepository:
++        predicate = eval(customer_filter)
++        query = f"SELECT id, customer_id, status FROM orders WHERE customer_id = {customer_id}"
++        return connection.execute(query).fetchall()

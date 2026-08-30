@@ -1,99 +1,127 @@
-# Registry PR review demo
+# Software Factory
 
-A generic, engineering-first demo of a GitHub PR-review agent governed by Atlan Registry.
-GitHub remains the source of truth for the skill and engineering standards. Registry versions the
-skill and provides the execution evidence. LangGraph guides the review, and Daytona is the only
-execution environment for the live path.
+[![Software Factory Review](https://github.com/atlanai/software-factory-demo/actions/workflows/software-factory-review.yml/badge.svg)](https://github.com/atlanai/software-factory-demo/actions/workflows/software-factory-review.yml)
+[![Sync skills to Atlan](https://github.com/atlanai/software-factory-demo/actions/workflows/atlan-skill-sync.yml/badge.svg)](https://github.com/atlanai/software-factory-demo/actions/workflows/atlan-skill-sync.yml)
+
+This repository is a working software factory. Product code, review agents, engineering skills,
+runtime policy, evaluation cases, CI evidence, and Registry lineage all live in one inspectable Git
+history. GitHub owns change. Atlan Agent Registry owns identity and versions. Daytona supplies the
+ephemeral runtime. LangGraph makes each review step explicit.
+
+The factory currently reviews a proposed change to a synthetic order service. The shipped service
+uses parameterized SQL. The proposed patch introduces dynamic evaluation and interpolated SQL, so
+the governed review returns `changes_requested` without applying the patch.
+
+## Open the factory
+
+| Surface | What to inspect |
+|---|---|
+| [Product software](software/order-service/) | Safe order-service code and its focused test |
+| [PR review agent](agents/pr-review-agent/) | LangGraph entrypoint, Registry identity, Daytona environment, skill pin |
+| [Trace improver](agents/trace-improver/) | Proposal-only agent that learns from version-scoped traces |
+| [Secure review skill](skills/secure-pr-review/) | Git-authored policy published to Registry |
+| [Improvement skill](skills/trace-driven-skill-improvement/) | Trace contract and bounded patch logic |
+| [Factory control plane](factory/) | Proposed change fixture and deterministic review inputs |
+| [Software Factory Review](https://github.com/atlanai/software-factory-demo/actions/workflows/software-factory-review.yml) | Tests, governed review, trace submission, evidence artifact |
+| [Atlan SkillSync](https://github.com/atlanai/software-factory-demo/actions/workflows/atlan-skill-sync.yml) | Protected-branch publication from GitHub to Registry |
+| [Demo control room](docs/demo-links.md) | GitHub, Registry, trace, agent, and Daytona links in one place |
+| [Registry inventory](docs/registry-inventory.md) | Verified live IDs, traces, Outputs, and governance status |
+
+## The factory loop
 
 ```mermaid
 flowchart LR
-    A[Manual GitHub workflow] --> B[Registry skill version]
-    A --> C[Git-managed standards]
-    B --> D[Daytona sandbox]
-    C --> D
-    D --> E[LangGraph review]
-    E --> F[Review artifact]
-    E --> G[Registry OTLP trace]
+    Dev[Developer change] --> GitHub[GitHub main / pull request]
+    GitHub --> Review[LangGraph PR review agent]
+    Skill[Registry skill version] --> Review
+    Standards[Git-managed standards] --> Review
+    Review --> Daytona[Daytona sandbox]
+    Daytona --> Decision[Review decision + evidence]
+    Daytona --> Trace[Atlan OTLP trace]
+    Trace --> Improve[Trace improvement agent]
+    Improve --> Proposal[Human-approved skill proposal]
+    GitHub --> Sync[Atlan SkillSync Action]
+    Sync --> Skill
 ```
 
-## What the demo proves
+Nothing in the improvement loop edits or publishes a skill automatically. A trace can produce a
+proposal; a human still owns the policy change and the merge.
 
-- A skill can stay in GitHub while Registry gives it a stable identity and immutable versions.
-- A PR review runs in an ephemeral Daytona sandbox with outbound networking blocked.
-- LangGraph makes the review stages visible and repeatable.
-- The trace records the skill name, version, source digest, referenced documents, decision, and
-  finding count. It never records the raw diff or document contents.
-- The GitHub workflow is manual and read-only. It produces an artifact for human review; it does
-  not post back to the pull request automatically.
+## What runs in CI
 
-Everything in this repository is synthetic. There are no customer names, repositories, rules,
-credentials, or production identifiers.
+`Software Factory Review` runs on every relevant push and on demand:
 
-## Repository layout
+1. Install the locked Python environment.
+2. Test the order service.
+3. Run formatting, lint, type, and unit-test gates for the factory.
+4. Feed `factory/fixtures/risky-order-change.diff` to the LangGraph review agent.
+5. Resolve `secure-pr-review` with its Registry fingerprint.
+6. Produce a Markdown summary and machine-readable review artifact.
+7. Submit an Atlan trace when `ATLANAI_TOKEN` is configured.
+
+`Sync skills to Atlan` is a separate least-privilege workflow. It publishes only from `main`, uses
+full Git history for provenance, and pins `atlanai/agent-registry-action` to the immutable v0.1.1
+commit. Pull requests get a credential-isolated Registry preflight comment; PR code never receives
+the publishing credential. Add the repository secret `ATLANAI_TOKEN` to enable publication; without
+it, the workflow reports that it is ready but uncredentialed and exits without publishing.
+
+## Repository map
 
 ```text
-skills/secure-pr-review/       Git-authored Registry skill
-knowledge/                     Synthetic engineering standards
-src/registry_pr_review_demo/   Registry, Daytona, LangGraph, and OTLP adapters
-examples/                      Safe and blocking PR diffs
-registry/                      Desired Registry state and verified live ids
-scripts/                       Non-printing credential and Daytona helpers
-tests/                         Deterministic unit and boundary tests
+software/order-service/                  Product code under review
+agents/pr-review-agent/                  LangGraph reviewer definition
+agents/trace-improver/                   Trace-driven proposal agent
+skills/secure-pr-review/                 Governed review policy
+skills/trace-driven-skill-improvement/   Governed improvement policy
+factory/fixtures/                        Proposed changes used as evidence
+knowledge/                               Engineering standards referenced by skills
+src/registry_pr_review_demo/             Runtime, Registry, Daytona, and trace adapters
+registry/                                Desired state and verified artifact references
+docs/                                    Architecture, API contracts, runbook, diagrams
+.github/workflows/                       Review, SkillSync, and preflight automation
 ```
 
-## Documentation
+## Live evidence
 
-- [Architecture](docs/architecture.md)
-- [Trace-driven improvement loop](docs/trace-improvement-loop.md)
-- [API contracts](docs/api-contracts.md)
-- [Live runbook](docs/runbook.md)
-- [Registry inventory](docs/registry-inventory.md)
+The checked-in [Registry inventory](docs/registry-inventory.md) records the currently verified
+workspace objects. The demo evidence includes:
 
-## Local verification
+- Daytona sandbox `ceeffd99-d723-4d88-89bd-b1052b025bf7` running both LangGraph agents.
+- Reviewer trace `06cd432f9c7c5e182c896fcc969b12d4` with the `secure-pr-review` fingerprint.
+- CLI improver trace `9e916c9e533d518e6a277bf7a4aa5761` with a bounded false-negative proposal.
+- Source Output `output_01m11hwbd5eqg8kz4mhhd1cp3w` and evidence Output
+  `output_01m11hsqegem09jfatqr5w5p45` in the Data workspace.
+
+The source diff never enters telemetry. Traces carry the evaluation ID, skill name, version,
+digests, decision, finding count, and matched rule IDs.
+
+## Run locally
 
 Requires Python 3.12 and `uv`.
 
 ```bash
 uv sync --locked
+uv run python -m unittest discover software/order-service/tests
 uv run ruff format --check .
 uv run ruff check .
 uv run pyright
 uv run pytest
+uv run python -m registry_pr_review_demo.factory_review \
+  --diff factory/fixtures/risky-order-change.diff \
+  --output build/factory-review/review.json \
+  --summary build/factory-review/summary.md
 ```
 
-The tests use fakes for Daytona and Registry. They do not need credentials or make network calls.
+The expected review decision is `changes_requested`. The risky patch remains a fixture; the product
+code stays safe.
 
-## Live demo setup
+## Design boundaries
 
-Store these credentials only through the Keychain and Daytona Secret helpers:
+- Daytona receives a bounded job, not the repository or arbitrary shell authority.
+- Runtime egress is limited to `agentgateway.atlan.engineering`.
+- GitHub pull-request code never receives the Registry publishing credential.
+- Registry traces omit raw diffs, document contents, and credentials.
+- Agent output is advisory. A human owns merges and skill publication.
 
-- `ATLAN_API_KEY`
-- `DAYTONA_API_KEY`
-
-The non-secret runtime coordinates are fixed by the local configuration:
-
-- `ATLAN_REGISTRY_URL`
-- `ATLAN_WORKSPACE_ID`
-
-No secret value belongs in this repository, workflow arguments, logs, or review artifacts.
-
-1. Follow the [live runbook](docs/runbook.md) to create the Daytona account and store the key.
-2. Publish both skills and register the approved Data workspace objects.
-3. Run the SDK reviewer and CLI improvement agent, then inspect the traces in Registry.
-
-Publishing and the live review are real external operations. They are deliberately local and manual.
-Authenticated Registry read-back is still required before presenting trace delivery as verified.
-
-The later AtlanAI repository phase will add reviewed GitHub workflows. This local phase intentionally
-contains no CI workflow or remote-provenance claim.
-
-## Runtime boundary
-
-The controller resolves the pinned skill bundle and allowlisted Git knowledge before starting the
-sandbox. Daytona receives only the bounded job JSON and a zipapp containing the review worker. The
-sandbox installs pinned LangGraph `1.2.11`, blocks outbound networking, executes a fixed command,
-and is deleted in a `finally` path.
-
-The deterministic rules in `rules.json` make the demo reproducible. A model-backed LangGraph node
-can replace `inspect_diff` later, but customer or proprietary code must not be sent to an external
-model without an approved data path.
+See [architecture](docs/architecture.md), [trace improvement loop](docs/trace-improvement-loop.md),
+[API contracts](docs/api-contracts.md), and the [live runbook](docs/runbook.md) for the detailed path.

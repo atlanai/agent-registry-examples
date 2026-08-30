@@ -1,7 +1,7 @@
 [project]
-name = "registry-pr-review-demo"
+name = "software-factory-demo"
 version = "0.1.0"
-description = "Generic GitHub PR-review agent demo using Daytona, LangGraph, and Atlan Registry"
+description = "A governed software factory using GitHub, Daytona, LangGraph, and Atlan Agent Registry"
 readme = "README.md"
 authors = [{ name = "Atlan" }]
 requires-python = ">=3.12"
@@ -49,6 +49,9 @@ branch = true
 
 [tool.uv]
 exclude-newer = "2026-08-20T00:00:00Z"
+
+[tool.uv.build-backend]
+module-name = "registry_pr_review_demo"
 
 [tool.uv.sources]
 atlan-ai = { path = "vendor/atlan-ai/atlan_ai-0.1.0-py3-none-any.whl" }

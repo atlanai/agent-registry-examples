@@ -1,0 +1,11 @@
+name: registry-skill-improver-cli
+display_name: Trace-driven Skill Improver
+framework: langgraph
+framework_id: agent_framework_01m09v3ncvey0a4ndx008we9kr
+registry_id: agent_01m11hjdcmehrr4yg6jnjj8t38
+provider: daytona
+environment: daytona-cli-skill-improver
+skills:
+  - trace-driven-skill-improvement@1
+authority: proposal_only
+trace_transport: atlanai-cli-otlp-json

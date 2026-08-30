@@ -1,0 +1,27 @@
+name: Atlan Agent Registry preflight
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "skills/**"
+      - ".atlan/package.json"
+
+permissions: {}
+
+concurrency:
+  group: atlan-agent-registry-preflight-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Register Atlan Agent Registry preflight
+        uses: atlanai/agent-registry-action@c15fee277eb5606f08546f0deea0b2f5b74ea26b # v0.1.1
+        with:
+          mode: preflight
+          github-token: ${{ github.token }}

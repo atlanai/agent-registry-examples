@@ -1,0 +1,76 @@
+name: Software Factory Review
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "software/**"
+      - "agents/**"
+      - "skills/**"
+      - "factory/**"
+      - "src/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/software-factory-review.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: software-factory-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out factory source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: "0.9.25"
+          enable-cache: true
+
+      - name: Install the locked factory environment
+        run: uv sync --locked
+
+      - name: Test product software
+        run: uv run python -m unittest discover software/order-service/tests
+
+      - name: Test factory implementation
+        run: |
+          uv run ruff format --check .
+          uv run ruff check .
+          uv run pyright
+          uv run pytest
+
+      - name: Make the pinned Atlan CLI available
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bin"
+          install -m 0755 vendor/atlanai/atlanai-linux-amd64 "$RUNNER_TEMP/bin/atlanai"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Review the proposed order-service change
+        env:
+          ATLANAI_TOKEN: ${{ secrets.ATLANAI_TOKEN }}
+        run: |
+          uv run python -m registry_pr_review_demo.factory_review \
+            --diff factory/fixtures/risky-order-change.diff \
+            --output build/factory-review/review.json \
+            --summary build/factory-review/summary.md \
+            --submit-trace-if-configured
+
+      - name: Upload governed review evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: governed-review-${{ github.run_id }}
+          path: build/factory-review
+          if-no-files-found: error
+          retention-days: 14
