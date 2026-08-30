@@ -101,7 +101,7 @@ def _parser() -> argparse.ArgumentParser:
         "--diff", type=Path, default=Path("factory/fixtures/risky-order-change.diff")
     )
     run_kiro.add_argument("--references", type=Path, default=Path("registry/skill-references.json"))
-    run_kiro.add_argument("--state", type=Path, default=Path("registry/state.json"))
+    run_kiro.add_argument("--state", type=Path, default=Path("registry/runtime-state.json"))
     run_kiro.add_argument("--kiro-binary", type=Path, default=Path("work/kiro/kiro-cli"))
     run_kiro.add_argument("--output", type=Path, required=True)
     run_kiro.add_argument("--case-id", default="sql-format-interpolation")

@@ -1,0 +1,18 @@
+{
+  "workspace_id": "workspace_01m0g43eb2fmgbv21dc7ygs7rc",
+  "provider_id": "agent_provider_01m11hdw9sewrrvy1rx0bp73q9",
+  "framework_ids": {
+    "langgraph": "agent_framework_01m09v3ncvey0a4ndx008we9kr",
+    "kiro-cli": "agent_framework_01m1a5cq3hfdg88xkbwpz4w807"
+  },
+  "environment_ids": {
+    "daytona-sdk-pr-review": "agent_environment_01m11hdztxfn8vm30g3z1s54h5",
+    "daytona-cli-skill-improver": "agent_environment_01m11he3c9eeht12m69nsr0c6s",
+    "daytona-kiro-pr-review": "agent_environment_01m1a5cqfdfz1vh7hga5qmpx9d"
+  },
+  "agent_ids": {
+    "pr-review-agent": "agent_01m11he6zdf88b5z381489b3xe",
+    "registry-skill-improver-cli": "agent_01m11hjdcmehrr4yg6jnjj8t38",
+    "kiro-pr-review-agent": "agent_01m1a74k4dfxg83a3b6sb71zrj"
+  }
+}

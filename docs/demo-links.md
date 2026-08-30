@@ -27,6 +27,7 @@ Agent Registry is currently a desktop/deep-link surface. Paste these links into 
 - Test impact skill: `atlan://open/orgs/atlan/brain/skill/skill_01m1a58e1kfx8aq721tnwd8zgm`
 - Review evidence skill: `atlan://open/orgs/atlan/brain/skill/skill_01m1a4yhyaey88ykf2ht4qrvc9`
 - PR review agent: `atlan://open/orgs/atlan/brain/agent/agent_01m11he6zdf88b5z381489b3xe`
+- Kiro PR review agent: `atlan://open/orgs/atlan/brain/agent/agent_01m1a74k4dfxg83a3b6sb71zrj`
 - Trace improver agent: `atlan://open/orgs/atlan/brain/agent/agent_01m11hjdcmehrr4yg6jnjj8t38`
 - Reviewer trace: `atlan://open/orgs/atlan/traces/06cd432f9c7c5e182c896fcc969b12d4`
 - Improver trace: `atlan://open/orgs/atlan/traces/9e916c9e533d518e6a277bf7a4aa5761`

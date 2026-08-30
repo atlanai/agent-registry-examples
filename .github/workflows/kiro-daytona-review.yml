@@ -39,7 +39,7 @@ jobs:
           uv run registry-pr-review run-kiro \
             --diff factory/fixtures/risky-order-change.diff \
             --references registry/skill-references.json \
-            --state registry/state.json \
+            --state registry/runtime-state.json \
             --output build/kiro-review/result.json
 
       - name: Upload sanitized review evidence

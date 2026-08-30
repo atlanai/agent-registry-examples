@@ -11,8 +11,13 @@ readback succeeds.
 | Agent provider | `daytona` | `agent_provider_01m11hdw9sewrrvy1rx0bp73q9` | 1 | Verified registered; draft |
 | Environment | `daytona-sdk-pr-review` | `agent_environment_01m11hdztxfn8vm30g3z1s54h5` | 1 | Verified registered, cloud + limited network |
 | Environment | `daytona-cli-skill-improver` | `agent_environment_01m11he3c9eeht12m69nsr0c6s` | 1 | Verified registered, cloud + limited network |
-| Agent | `registry-pr-review-sdk` | `agent_01m11he6zdf88b5z381489b3xe` | 1 | Verified registered; LangGraph + active `uses_skill` edge |
+| Agent | `registry-pr-review-sdk` | `agent_01m11he6zdf88b5z381489b3xe` | 1 | Verified registered; LangGraph + three active `uses_skill` edges |
+| Agent | `kiro-pr-review-agent` | `agent_01m1a74k4dfxg83a3b6sb71zrj` | 1 | Verified registered; Kiro CLI + three active `uses_skill` edges |
 | Agent | `registry-skill-improver-cli` | `agent_01m11hjdcmehrr4yg6jnjj8t38` | 1 | Verified registered; LangGraph + active `uses_skill` edge |
+| Agent framework | `kiro-cli` | `agent_framework_01m1a5cq3hfdg88xkbwpz4w807` | 1 | Verified registered |
+| Environment | `daytona-kiro-pr-review` | `agent_environment_01m1a5cqfdfz1vh7hga5qmpx9d` | 1 | Verified registered with restricted egress |
+| Skill | `test-impact-analysis` | `skill_01m1a58e1kfx8aq721tnwd8zgm` | 1 | Git source; semantic version 0.1.1 |
+| Skill | `review-evidence-summary` | `skill_01m1a4yhyaey88ykf2ht4qrvc9` | 1 | Git source; semantic version 0.1.1 |
 | Skill | `secure-pr-review` | `skill_01m11gr8cjekhb5gvqn0k4x1ny` | 1 | Registered; `pending_review` after two operational scan errors |
 | Skill | `trace-driven-skill-improvement` | `skill_01m11gt6ncek08kcxwmqnt0bah` | 1 | Registered; `pending_review` after two operational scan errors |
 
