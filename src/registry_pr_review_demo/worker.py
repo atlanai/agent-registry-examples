@@ -145,7 +145,7 @@ def run_kiro_trace_job(
         _string_value(item, "tool name")
         for item in _sequence(raw_payload.get("tool_names", []), "tool_names")
     )
-    if any(name not in {"read", "grep"} for name in tool_names):
+    if any(name not in {"read", "grep", "disclose_context"} for name in tool_names):
         raise ValueError("Kiro trace contains a disallowed tool")
     configured: list[tuple[str, SkillFingerprint]] = []
     for raw in _sequence(raw_payload.get("skills"), "skills"):

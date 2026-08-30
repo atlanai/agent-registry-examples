@@ -308,8 +308,8 @@ def _run_kiro(args: argparse.Namespace) -> int:
         raise ValueError("diff exceeds the 2 MB demo limit")
     workspace_files: dict[str, bytes] = {
         "/workspace/change.diff": diff_path.read_bytes(),
-        "/workspace/.kiro/agents/pr-review.md": (
-            project_root / ".kiro/agents/pr-review.md"
+        "/workspace/.kiro/agents/pr-review.json": (
+            project_root / ".kiro/agents/pr-review.json"
         ).read_bytes(),
     }
     for name in KIRO_REVIEW_SKILLS:

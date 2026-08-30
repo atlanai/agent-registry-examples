@@ -34,7 +34,7 @@ All objects live in the Data workspace `workspace_01m0g43eb2fmgbv21dc7ygs7rc`.
 | Environment | `daytona-cli-skill-improver` | LangGraph plus checksum-pinned Linux `atlanai` |
 | Environment | `daytona-kiro-pr-review` | Pinned Kiro launcher plus internal `atlan_ai` wheel |
 | Agent | `pr-review-agent` | Local alias for the immutable LangGraph Agent ID |
-| Agent | `kiro-pr-review-agent` | Read-only Kiro reviewer with structured JSONL output |
+| Agent | `kiro-pr-review-agent-v2` | Replacement read-only Kiro reviewer with structured JSONL output |
 | Agent | `registry-skill-improver-cli` | Reads Registry traces, proposes a patch, exports through CLI |
 | Skill | `secure-pr-review` | Versioned review policy and deterministic rules |
 | Skill | `test-impact-analysis` | Focused affected-test and regression-gap analysis |
@@ -59,7 +59,7 @@ The binary is downloaded from Atlan's signed preview manifest and checked agains
 
 The Kiro sandbox embeds the verified 2.20.1 Linux launcher. Archive and launcher digests are pinned
 in `vendor/kiro/manifest.json`; the official installer is never piped to a shell. Kiro receives only
-`read` and `grep`. The pinned `atlanai` CLI in that same sandbox converts the sanitized result into
+`read`, `grep`, and the read-only `disclose_context` skill activator. The pinned `atlanai` CLI in that same sandbox converts the sanitized result into
 OTLP JSON and submits it through `POST /otel/v1/traces`. All sandboxes are ephemeral and every exit
 path deletes them.
 

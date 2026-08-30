@@ -23,7 +23,7 @@
   "agents": [
     "pr-review-agent",
     "registry-skill-improver-cli",
-    "kiro-pr-review-agent"
+    "kiro-pr-review-agent-v2"
   ],
   "skills": [
     "secure-pr-review",
@@ -37,7 +37,7 @@
       "test-impact-analysis",
       "review-evidence-summary"
     ],
-    "kiro-pr-review-agent": [
+    "kiro-pr-review-agent-v2": [
       "secure-pr-review",
       "test-impact-analysis",
       "review-evidence-summary"

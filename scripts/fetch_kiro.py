@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import cast
 
 MAX_ARCHIVE_BYTES = 800 * 1024 * 1024
-MAX_BINARY_BYTES = 150 * 1024 * 1024
+MAX_BINARY_BYTES = 1024 * 1024 * 1024
 ALLOWED_HOST = "prod.download.cli.kiro.dev"
 
 
@@ -38,7 +38,7 @@ def extract_verified_archive(
     with zipfile.ZipFile(archive) as package:
         info = package.getinfo(member)
         if info.file_size > MAX_BINARY_BYTES:
-            raise RuntimeError("Kiro launcher exceeds the verified size limit")
+            raise RuntimeError("Kiro runtime binary exceeds the verified size limit")
         target.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(dir=target.parent, delete=False) as temporary:
             temporary_path = Path(temporary.name)
@@ -46,7 +46,7 @@ def extract_verified_archive(
                 shutil.copyfileobj(source, temporary)
         try:
             if sha256(temporary_path) != binary_digest:
-                raise RuntimeError("Kiro launcher failed SHA-256 verification")
+                raise RuntimeError("Kiro runtime binary failed SHA-256 verification")
             temporary_path.chmod(0o755)
             temporary_path.replace(target)
         finally:
@@ -83,14 +83,24 @@ def main() -> int:
                     if size > MAX_ARCHIVE_BYTES:
                         raise RuntimeError("Kiro archive exceeds the download limit")
                     handle.write(chunk)
-        extract_verified_archive(
-            archive,
-            output,
-            archive_digest=str(manifest["archive_sha256"]),
-            member=str(manifest["binary_member"]),
-            binary_digest=str(manifest["binary_sha256"]),
-        )
-    print(f"Verified Kiro CLI {manifest['version']} at {output}")
+        binaries = manifest.get("runtime_binaries")
+        if not isinstance(binaries, list) or len(binaries) != 3:
+            raise RuntimeError("Kiro manifest requires the complete three-binary runtime")
+        for raw in cast(list[object], binaries):
+            if not isinstance(raw, dict):
+                raise RuntimeError("Kiro runtime manifest entry must be an object")
+            entry = cast(dict[str, object], raw)
+            filename = str(entry.get("filename", ""))
+            if filename not in {"kiro-cli", "kiro-cli-chat", "kiro-cli-term"}:
+                raise RuntimeError("Kiro runtime manifest has an unknown binary")
+            extract_verified_archive(
+                archive,
+                output.with_name(filename),
+                archive_digest=str(manifest["archive_sha256"]),
+                member=str(entry["member"]),
+                binary_digest=str(entry["sha256"]),
+            )
+    print(f"Verified complete Kiro CLI {manifest['version']} runtime at {output.parent}")
     return 0
 
 

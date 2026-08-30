@@ -1,6 +1,6 @@
-name: kiro-pr-review-agent
+name: kiro-pr-review-agent-v2
 display_name: Kiro PR Review Agent
-registry_id: agent_01m1a74k4dfxg83a3b6sb71zrj
+registry_id: agent_01m1afk4evfvrtgc2yp2kex50g
 framework: kiro-cli
 provider: daytona
 environment: daytona-kiro-pr-review
@@ -8,7 +8,7 @@ skills:
   - secure-pr-review@2
   - test-impact-analysis@1
   - review-evidence-summary@1
-entrypoint: kiro-cli chat --engine v3 --agent pr-review --no-interactive --trust-tools=read,grep --output-format stream-json
+entrypoint: kiro-cli chat --agent-engine v3 --agent pr-review --no-interactive --trust-tools=read,grep,disclose_context --output-format stream-json
 network:
   mode: limited
   allowed_hosts:

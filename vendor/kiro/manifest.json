@@ -4,5 +4,22 @@
   "archive_url": "https://prod.download.cli.kiro.dev/stable/2.20.1/kirocli-x86_64-linux.zip",
   "archive_sha256": "40c49223ce9844746f9cebadbc17dfd2491fa9e46fc19ccd527be70d44798371",
   "binary_member": "kirocli/bin/kiro-cli",
-  "binary_sha256": "5c5523831790318b6b2fb9e8c205915f2355106fe1090ac0cfe121a4f815b6b6"
+  "binary_sha256": "5c5523831790318b6b2fb9e8c205915f2355106fe1090ac0cfe121a4f815b6b6",
+  "runtime_binaries": [
+    {
+      "filename": "kiro-cli",
+      "member": "kirocli/bin/kiro-cli",
+      "sha256": "5c5523831790318b6b2fb9e8c205915f2355106fe1090ac0cfe121a4f815b6b6"
+    },
+    {
+      "filename": "kiro-cli-chat",
+      "member": "kirocli/bin/kiro-cli-chat",
+      "sha256": "853ef43386ff943ff3b684d17ce9bb9e5573bd72647d23d70a11bdb11087b86b"
+    },
+    {
+      "filename": "kiro-cli-term",
+      "member": "kirocli/bin/kiro-cli-term",
+      "sha256": "32ad84f9f67d9778760a492f3702659876c009b62fd9eb362b8fe76a3191111d"
+    }
+  ]
 }

@@ -11,7 +11,8 @@ from daytona import CreateSandboxFromImageParams, Daytona, Image
 MAX_STREAM_BYTES = 4_000_000
 MAX_STREAM_EVENTS = 2_000
 MAX_TOOL_EVENTS = 100
-ALLOWED_KIRO_TOOLS = frozenset({"read", "grep"})
+ALLOWED_KIRO_TOOLS = frozenset({"read", "read_file", "grep", "disclose_context"})
+KIRO_TOOL_NAMES = {"read_file": "read"}
 
 
 class ExecuteResponse(Protocol):
@@ -88,20 +89,58 @@ def parse_kiro_stream(raw: str) -> tuple[dict[str, object], tuple[str, ...]]:
                 if len(tool_names) >= MAX_TOOL_EVENTS:
                     raise ValueError("Kiro stream has too many tool events")
                 tool_names.append(raw_name)
+        if event_type == "sessionUpdate":
+            data = event.get("data")
+            if isinstance(data, dict):
+                update = cast(dict[str, object], data).get("update")
+                if isinstance(update, dict):
+                    meta = cast(dict[str, object], update).get("_meta")
+                    if isinstance(meta, dict):
+                        kiro = cast(dict[str, object], meta).get("kiro")
+                        if isinstance(kiro, dict):
+                            summaries = cast(dict[str, object], kiro).get("promptTurnSummaries", [])
+                            if isinstance(summaries, list):
+                                for summary in cast(list[object], summaries):
+                                    if not isinstance(summary, dict):
+                                        continue
+                                    used = cast(dict[str, object], summary).get("usedTools", [])
+                                    if isinstance(used, list):
+                                        for raw_name in cast(list[object], used):
+                                            if isinstance(raw_name, str):
+                                                tool_names.append(raw_name)
         if event_type in {"result", "assistant", "TurnEnd"}:
             final = event.get("result", event.get("content", event.get("output")))
+        if event_type == "runFinished":
+            data = event.get("data")
+            if isinstance(data, dict):
+                final = cast(dict[str, object], data).get("finalText")
     if final is None:
         raise ValueError("Kiro stream omitted a final result")
     if isinstance(final, str):
         try:
             final = json.loads(final)
-        except json.JSONDecodeError as error:
-            raise ValueError("Kiro final result is not JSON") from error
+        except json.JSONDecodeError:
+            fence = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", final, re.DOTALL)
+            if fence is None:
+                raise ValueError("Kiro final result is not JSON") from None
+            try:
+                final = json.loads(fence.group(1))
+            except json.JSONDecodeError as error:
+                raise ValueError("Kiro final result is not JSON") from error
     result = _object(final, "Kiro final result")
     _validate_result(result)
     if model is not None:
         result["model"] = model
-    return result, tuple(tool_names)
+    normalized_tools: list[str] = []
+    for tool_name in tool_names:
+        if tool_name not in ALLOWED_KIRO_TOOLS:
+            raise ValueError(f"Kiro used disallowed tool {tool_name!r}")
+        normalized = KIRO_TOOL_NAMES.get(tool_name, tool_name)
+        if normalized not in normalized_tools:
+            normalized_tools.append(normalized)
+        if len(normalized_tools) > MAX_TOOL_EVENTS:
+            raise ValueError("Kiro stream has too many tool events")
+    return result, tuple(normalized_tools)
 
 
 def _validate_result(result: Mapping[str, object]) -> None:
@@ -186,14 +225,21 @@ class KiroDaytonaRuntime:
 
     def run(self, trace_payload: Mapping[str, object]) -> dict[str, object]:
         client = self._client_factory()
+        kiro_chat = self._kiro_binary.with_name("kiro-cli-chat")
+        kiro_term = self._kiro_binary.with_name("kiro-cli-term")
+        if not kiro_chat.is_file() or not kiro_term.is_file():
+            raise RuntimeError("Complete Kiro three-binary runtime is required")
         wheel_remote = f"/opt/software-factory/{self._sdk_wheel.name}"
         image = (
             Image.debian_slim("3.12")
             .add_local_file(self._kiro_binary, "/usr/local/bin/kiro-cli")
+            .add_local_file(kiro_chat, "/usr/local/bin/kiro-cli-chat")
+            .add_local_file(kiro_term, "/usr/local/bin/kiro-cli-term")
             .add_local_file(self._cli_binary, "/usr/local/bin/atlanai")
             .add_local_file(self._sdk_wheel, wheel_remote)
             .run_commands(
                 "chmod 0755 /usr/local/bin/kiro-cli",
+                "chmod 0755 /usr/local/bin/kiro-cli-chat /usr/local/bin/kiro-cli-term",
                 "chmod 0755 /usr/local/bin/atlanai",
                 f"python -m pip install {wheel_remote}",
             )
@@ -223,8 +269,9 @@ class KiroDaytonaRuntime:
                 sandbox.fs.upload_file(content, remote_path)
             response = sandbox.process.exec(
                 (
-                    "/usr/local/bin/kiro-cli chat --engine v3 --agent pr-review "
-                    "--no-interactive --trust-tools=read,grep --output-format stream-json "
+                    "/usr/local/bin/kiro-cli chat --agent-engine v3 --agent pr-review "
+                    "--no-interactive --trust-tools=read,grep,disclose_context "
+                    "--output-format stream-json "
                     '"Read /workspace/review-contract.json, then review /workspace/change.diff '
                     "using every configured review skill. Return only the required JSON evidence "
                     'object with the exact Registry skill fingerprints from the contract."'

@@ -1,0 +1,13 @@
+{
+  "name": "pr-review",
+  "description": "Read-only governed PR reviewer using exact Registry skill resources.",
+  "tools": ["read", "grep", "disclose_context"],
+  "allowedTools": ["read", "grep", "disclose_context"],
+  "resources": [
+    "file://.kiro/skills/secure-pr-review/SKILL.md",
+    "file://.kiro/skills/test-impact-analysis/SKILL.md",
+    "file://.kiro/skills/review-evidence-summary/SKILL.md",
+    "file://review-contract.json"
+  ],
+  "prompt": "Review only the supplied patch and repository files. Apply every loaded Registry skill resource, never modify or execute code, and return only the required JSON evidence object with exact skill fingerprints."
+}

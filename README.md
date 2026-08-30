@@ -20,7 +20,7 @@ the governed review returns `changes_requested` without applying the patch.
 |---|---|
 | [Product software](software/order-service/) | Safe order-service code and its focused test |
 | [PR review agent](agents/pr-review-agent/) | LangGraph entrypoint, immutable Registry identity, Daytona environment |
-| [Kiro PR review agent](agents/kiro-pr-review-agent/) | Headless Kiro implementation with read/grep-only authority |
+| [Kiro PR review agent](agents/kiro-pr-review-agent/) | Headless Kiro implementation with read, grep, and skill-context authority only |
 | [Trace improver](agents/trace-improver/) | Proposal-only agent that learns from version-scoped traces |
 | [Secure review skill](skills/secure-pr-review/) | Git-authored policy published to Registry |
 | [Test impact skill](skills/test-impact-analysis/) | Maps changed behavior to focused regression coverage |
@@ -70,7 +70,8 @@ proposal; a human still owns the policy change and the merge.
 `Kiro PR Review in Daytona` is an independent manual acceptance lane. It downloads only the pinned
 Kiro 2.20.1 archive, verifies both archive and launcher SHA-256 values, uploads the synthetic service,
 diff, exact skill bundles, custom-agent policy, and the pinned `atlanai` CLI to Daytona. Kiro runs
-with only `read` and `grep`; the CLI then submits sanitized OTLP JSON through the Gateway REST API.
+with only `read`, `grep`, and Kiro's internal `disclose_context`; the CLI then submits sanitized
+OTLP JSON through the Gateway REST API.
 The run fails if Agent identity, skill fingerprints, structured output, Session,
 Output, or Agent/Skill trace readback is incomplete.
 
@@ -137,7 +138,8 @@ code stays safe.
 ## Design boundaries
 
 - Daytona receives a bounded synthetic workspace, not Git credentials or the full repository.
-- Kiro has no shell, write, Git mutation, web, or MCP authority.
+- Kiro has no shell, write, Git mutation, web, or MCP authority; `disclose_context` only activates
+  the checked-in skill resources.
 - Runtime egress is an explicit host allowlist; wildcard internet access is disabled.
 - GitHub pull-request code never receives the Registry publishing credential.
 - Every Daytona run requires its registered Agent key; missing identity fails before execution.

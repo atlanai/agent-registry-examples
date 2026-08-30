@@ -43,6 +43,50 @@ def test_parse_kiro_stream_returns_validated_result_and_tools() -> None:
     assert tools == ("read", "grep")
 
 
+def test_parse_current_v3_stream_reads_fenced_result_and_sanitized_tools() -> None:
+    result = kiro_result()
+    stream = "\n".join(
+        [
+            json.dumps(
+                {
+                    "type": "sessionUpdate",
+                    "data": {
+                        "update": {
+                            "_meta": {
+                                "kiro": {
+                                    "promptTurnSummaries": [
+                                        {
+                                            "usedTools": [
+                                                "read_file",
+                                                "disclose_context",
+                                                "read_file",
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "runFinished",
+                    "data": {
+                        "status": "success",
+                        "finalText": f"```json\n{json.dumps(result)}\n```",
+                    },
+                }
+            ),
+        ]
+    )
+
+    parsed, tools = parse_kiro_stream(stream)
+
+    assert parsed["decision"] == "changes_requested"
+    assert tools == ("read", "disclose_context")
+
+
 @pytest.mark.parametrize(
     ("stream", "message"),
     [
@@ -118,6 +162,8 @@ def test_kiro_daytona_runtime_is_read_only_traced_and_ephemeral(tmp_path: Path) 
     cli = tmp_path / "atlanai"
     wheel = tmp_path / "atlan_ai-0.1.0-py3-none-any.whl"
     kiro.write_bytes(b"binary")
+    kiro.with_name("kiro-cli-chat").write_bytes(b"chat")
+    kiro.with_name("kiro-cli-term").write_bytes(b"term")
     cli.write_bytes(b"cli")
     wheel.write_bytes(b"wheel")
     traced = {**kiro_result(), "trace_id": "b" * 32}
@@ -133,7 +179,7 @@ def test_kiro_daytona_runtime_is_read_only_traced_and_ephemeral(tmp_path: Path) 
         sdk_wheel=wheel,
         workspace_files={
             "/workspace/change.diff": b"synthetic patch",
-            "/workspace/.kiro/agents/pr-review.md": b"agent",
+            "/workspace/.kiro/agents/pr-review.json": b"agent",
         },
         secrets={
             "ATLAN_API_KEY": "kiro-pr-review-agent-key",
@@ -165,12 +211,13 @@ def test_kiro_daytona_runtime_is_read_only_traced_and_ephemeral(tmp_path: Path) 
     }
     assert daytona.deleted == [sandbox]
     command = sandbox.process.commands[0][0]
-    assert "--trust-tools=read,grep" in command
+    assert "--agent-engine v3" in command
+    assert "--trust-tools=read,grep,disclose_context" in command
     assert "synthetic patch" not in command
     assert {path for _, path in sandbox.fs.uploads} >= {
         "/workspace/agent.pyz",
         "/workspace/change.diff",
-        "/workspace/.kiro/agents/pr-review.md",
+        "/workspace/.kiro/agents/pr-review.json",
         "/workspace/trace-request.json",
     }
     trace_request = next(
@@ -186,6 +233,8 @@ def test_kiro_daytona_runtime_deletes_sandbox_on_kiro_failure(tmp_path: Path) ->
     cli = tmp_path / "atlanai"
     wheel = tmp_path / "atlan_ai.whl"
     kiro.write_bytes(b"binary")
+    kiro.with_name("kiro-cli-chat").write_bytes(b"chat")
+    kiro.with_name("kiro-cli-term").write_bytes(b"term")
     cli.write_bytes(b"cli")
     wheel.write_bytes(b"wheel")
     sandbox = FakeSandbox([FakeResponse(3)], b"{}")
