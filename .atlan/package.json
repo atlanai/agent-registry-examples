@@ -1,0 +1,20 @@
+{
+  "$schema": "https://agentgateway.atlan.engineering/schemas/package-v1.json",
+  "name": "registry-pr-review-demo",
+  "skills": {
+    "workspace:workspace_01m0g43eb2fmgbv21dc7ygs7rc": [
+      "secure-pr-review",
+      "trace-driven-skill-improvement"
+    ]
+  },
+  "installConfig": {
+    "agents": ["codex", "claude-code"],
+    "mode": "symlink"
+  },
+  "publishConfig": {
+    "workspace": "workspace_01m0g43eb2fmgbv21dc7ygs7rc",
+    "directory": "skills",
+    "skills": "*",
+    "trigger": "manual"
+  }
+}

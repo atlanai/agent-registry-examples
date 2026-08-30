@@ -1,0 +1,24 @@
+{
+  "workspace_id": "workspace_01m0g43eb2fmgbv21dc7ygs7rc",
+  "framework": {
+    "id": "agent_framework_01m09v3ncvey0a4ndx008we9kr",
+    "name": "langgraph",
+    "mode": "reuse"
+  },
+  "provider": {
+    "name": "daytona",
+    "provider_type": "custom"
+  },
+  "environments": [
+    "daytona-sdk-pr-review",
+    "daytona-cli-skill-improver"
+  ],
+  "agents": [
+    "registry-pr-review-sdk",
+    "registry-skill-improver-cli"
+  ],
+  "skills": [
+    "secure-pr-review",
+    "trace-driven-skill-improvement"
+  ]
+}

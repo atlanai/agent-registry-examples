@@ -1,0 +1,124 @@
+{
+  "schema": "release-manifest.v1",
+  "version": "0.3.53",
+  "protocol_version": 1,
+  "schema_version": "coding-agent.v1",
+  "published_at": "2026-08-27T06:04:51Z",
+  "artifacts": [
+    {
+      "component": "plugin",
+      "os": "darwin",
+      "arch": "amd64",
+      "url": "https://releases.atlan.com/dev/cli/artifacts/v0.3.53/atlanai-darwin-amd64",
+      "sha256": "c2d184af5ed06a81d9c1a1fc37b9de413932a21d1ea50f36ebae11b2064d7c41",
+      "size": 22535984,
+      "platform_signature": "apple-developer-id"
+    },
+    {
+      "component": "plugin",
+      "os": "darwin",
+      "arch": "arm64",
+      "url": "https://releases.atlan.com/dev/cli/artifacts/v0.3.53/atlanai-darwin-arm64",
+      "sha256": "3c47cedf65365ca0058e2ff97a4334fe70a2d2ed7f1d152d1d9c04601495741d",
+      "size": 20976176,
+      "platform_signature": "apple-developer-id"
+    },
+    {
+      "component": "plugin",
+      "os": "linux",
+      "arch": "amd64",
+      "url": "https://releases.atlan.com/dev/cli/artifacts/v0.3.53/atlanai-linux-amd64",
+      "sha256": "2de549a7f584f748f8e082e7c88b18a0e916ef3051f06be2aeddfefa6b13ea59",
+      "size": 22569144,
+      "platform_signature": "sigstore"
+    },
+    {
+      "component": "plugin",
+      "os": "linux",
+      "arch": "arm64",
+      "url": "https://releases.atlan.com/dev/cli/artifacts/v0.3.53/atlanai-linux-arm64",
+      "sha256": "9a580a487a838ad3872da5fc6173a2234fd23e51edd78cb4af7621c963fd51f8",
+      "size": 21168312,
+      "platform_signature": "sigstore"
+    },
+    {
+      "component": "plugin",
+      "os": "windows",
+      "arch": "amd64",
+      "url": "https://releases.atlan.com/dev/cli/artifacts/v0.3.53/atlanai-windows-amd64.exe",
+      "sha256": "76ea0cc5c3ed5c27181f23c001c704071cd7b0803eed20960e1198e5d6f0031f",
+      "size": 22850048,
+      "platform_signature": "none"
+    },
+    {
+      "component": "plugin",
+      "os": "windows",
+      "arch": "arm64",
+      "url": "https://releases.atlan.com/dev/cli/artifacts/v0.3.53/atlanai-windows-arm64.exe",
+      "sha256": "70432ef331c2573f1f3950d3ba1f5d8848a08f3d8ffdc3a6570c33c661797c63",
+      "size": 21131264,
+      "platform_signature": "none"
+    },
+    {
+      "component": "launcher",
+      "os": "darwin",
+      "arch": "amd64",
+      "url": "https://releases.atlan.com/dev/cli/artifacts/v0.3.53/atlanai-launcher-darwin-amd64",
+      "sha256": "1200be8f99711b66095d0eca91ccf2a3142e64503a0373178d54ce34aa994701",
+      "size": 2508752,
+      "platform_signature": "apple-developer-id"
+    },
+    {
+      "component": "launcher",
+      "os": "darwin",
+      "arch": "arm64",
+      "url": "https://releases.atlan.com/dev/cli/artifacts/v0.3.53/atlanai-launcher-darwin-arm64",
+      "sha256": "1d1c258651ca95fea26a7d6da53e8ff818c981498d0e0091be601318ebc1d569",
+      "size": 2420640,
+      "platform_signature": "apple-developer-id"
+    },
+    {
+      "component": "launcher",
+      "os": "linux",
+      "arch": "amd64",
+      "url": "https://releases.atlan.com/dev/cli/artifacts/v0.3.53/atlanai-launcher-linux-amd64",
+      "sha256": "ea6ab69679e3444492785b136365be7b7224642519f5f98e4065b402f941d055",
+      "size": 2494648,
+      "platform_signature": "sigstore"
+    },
+    {
+      "component": "launcher",
+      "os": "linux",
+      "arch": "arm64",
+      "url": "https://releases.atlan.com/dev/cli/artifacts/v0.3.53/atlanai-launcher-linux-arm64",
+      "sha256": "c280d563b2c7086dff85dd645c3c454138b5c9d07332b6bb4bcd62cb1f4e3393",
+      "size": 2490552,
+      "platform_signature": "sigstore"
+    },
+    {
+      "component": "launcher",
+      "os": "windows",
+      "arch": "amd64",
+      "url": "https://releases.atlan.com/dev/cli/artifacts/v0.3.53/atlanai-launcher-windows-amd64.exe",
+      "sha256": "a7a146ed17b93911623512da3e097e67ad1437487ad5eb6e776a84ef40a97d29",
+      "size": 2606080,
+      "platform_signature": "none"
+    },
+    {
+      "component": "launcher",
+      "os": "windows",
+      "arch": "arm64",
+      "url": "https://releases.atlan.com/dev/cli/artifacts/v0.3.53/atlanai-launcher-windows-arm64.exe",
+      "sha256": "51eee9ced332c580be8082a69b42fae543f2a05d655453e5ef8d8f69923eec1b",
+      "size": 2475008,
+      "platform_signature": "none"
+    }
+  ],
+  "signatures": [
+    {
+      "algorithm": "ed25519",
+      "key_id": "atlanai-releases-2026-08-v1",
+      "value": "+FGdmQ8h9eN0dLBp/Rv2DBFuMypWnGj6o4Wsxf/grpNJB7blWnAswBv/BzNv9826O/SnpiuJXiqJVxiD6394AQ=="
+    }
+  ]
+}

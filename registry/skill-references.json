@@ -1,0 +1,16 @@
+{
+  "secure-pr-review": {
+    "id": "skill_01m11gr8cjekhb5gvqn0k4x1ny",
+    "version": 1,
+    "source_digest": "cfcddcbd98e05880d8899d34a592990f8203916f15c8821db657b38b5bafbe28",
+    "semantic_version": "0.1.0",
+    "skillmd_sha256": "a8dcdb88b127a8a1e3e464acb87183e923f930ab4e8950678d5cc4397b089ced"
+  },
+  "trace-driven-skill-improvement": {
+    "id": "skill_01m11gt6ncek08kcxwmqnt0bah",
+    "version": 1,
+    "source_digest": "beec951602b7e2b57772df94d7b6d9d74f58ad5d44cd6b01af4c7ba6284d02a8",
+    "semantic_version": "0.1.0",
+    "skillmd_sha256": "6d164b63e17326646f09dec353b53356e08a5c160466f4c606cd39464211d7a3"
+  }
+}

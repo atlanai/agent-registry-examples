@@ -1,0 +1,26 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.coverage
+.pytest_cache/
+.ruff_cache/
+
+# Local credentials and generated review artifacts
+.env
+review-request.json
+review-result.json
+skill-reference.json
+.atlan/package-lock.json
+.agents/skills/
+.claude/skills/
+registry/state.json
+results/
+work/
+.DS_Store

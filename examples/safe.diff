@@ -1,0 +1,6 @@
+diff --git a/src/users.py b/src/users.py
+index 1111111..2222222 100644
+--- a/src/users.py
++++ b/src/users.py
+@@ -1,2 +1,2 @@
++user = repository.find_by_id(user_id)

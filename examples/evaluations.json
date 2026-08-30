@@ -1,0 +1,14 @@
+{
+  "cases": [
+    {
+      "id": "sql-format-interpolation",
+      "diff": "examples/sql-format-gap.diff",
+      "expected_decision": "changes_requested"
+    },
+    {
+      "id": "safe-query",
+      "diff": "examples/safe.diff",
+      "expected_decision": "approve"
+    }
+  ]
+}

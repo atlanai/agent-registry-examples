@@ -1,0 +1,27 @@
+{
+  "name": "secure-pr-review",
+  "version": "0.1.0",
+  "rules": [
+    {
+      "id": "no-dynamic-eval",
+      "pattern": "\\beval\\s*\\(",
+      "severity": "high",
+      "message": "Do not execute dynamically supplied code.",
+      "knowledge_ids": ["secure-coding"]
+    },
+    {
+      "id": "parameterize-sql",
+      "pattern": "f[\\\"']SELECT\\b",
+      "severity": "high",
+      "message": "Use a parameterized query instead of interpolating SQL.",
+      "knowledge_ids": ["data-access"]
+    },
+    {
+      "id": "no-hardcoded-token",
+      "pattern": "(?i)(api[_-]?key|token|password)\\s*=\\s*[\\\"'][^\\\"']{8,}[\\\"']",
+      "severity": "critical",
+      "message": "Move credentials to the approved secret store and rotate exposed values.",
+      "knowledge_ids": ["secure-coding"]
+    }
+  ]
+}

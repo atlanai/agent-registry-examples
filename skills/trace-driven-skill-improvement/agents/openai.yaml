@@ -1,0 +1,3 @@
+interface:
+  display_name: "Trace Driven Skill Improvement"
+  short_description: "Analyze Registry traces and propose skill patches"

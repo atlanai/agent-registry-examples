@@ -1,0 +1,6 @@
+diff --git a/src/event_query.py b/src/event_query.py
+index 1111111..2222222 100644
+--- a/src/event_query.py
++++ b/src/event_query.py
+@@ -1,2 +1,2 @@
++query = "SELECT * FROM events WHERE workspace_id = {}".format(workspace_id)

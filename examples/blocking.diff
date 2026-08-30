@@ -1,0 +1,8 @@
+diff --git a/src/users.py b/src/users.py
+index 1111111..2222222 100644
+--- a/src/users.py
++++ b/src/users.py
+@@ -1,2 +1,4 @@
++result = eval(user_input)
++query = f"SELECT * FROM users WHERE id={user_id}"
++api_key = "synthetic-demo-value"
