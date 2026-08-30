@@ -21,7 +21,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Register Atlan Agent Registry preflight
-        uses: atlanai/agent-registry-action@facf860643fc7a98dbd51a61101154d378e0aadc # fix/installer-digest-v0.1.2
+        uses: atlanai/agent-registry-action@ffe71cd720bfad6c01d515ce6f174b6dd563ddfa # fix/installer-digest-v0.1.2
         with:
           mode: preflight
           github-token: ${{ github.token }}
