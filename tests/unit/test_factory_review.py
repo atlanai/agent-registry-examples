@@ -84,10 +84,12 @@ def test_factory_review_submits_trace_when_ci_credential_is_configured(
     assert result["trace_status"] == "submitted"
 
 
-def test_factory_review_command_entrypoint(tmp_path: Path) -> None:
+def test_factory_review_command_entrypoint(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root = Path(__file__).parents[2]
     output = tmp_path / "review.json"
     summary = tmp_path / "review.md"
+    github_summary = tmp_path / "github-summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(github_summary))
 
     exit_code = main(
         [
@@ -105,3 +107,30 @@ def test_factory_review_command_entrypoint(tmp_path: Path) -> None:
     assert exit_code == 0
     assert output.is_file()
     assert summary.is_file()
+    assert not github_summary.exists()
+
+
+def test_factory_review_publishes_one_explicit_github_summary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = Path(__file__).parents[2]
+    github_summary = tmp_path / "github-summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(github_summary))
+
+    exit_code = main(
+        [
+            "--root",
+            str(root),
+            "--diff",
+            str(root / "factory/fixtures/risky-order-change.diff"),
+            "--output",
+            str(tmp_path / "review.json"),
+            "--summary",
+            str(tmp_path / "review.md"),
+            "--github-summary",
+        ]
+    )
+
+    rendered = github_summary.read_text(encoding="utf-8")
+    assert exit_code == 0
+    assert rendered.count("# Governed software review") == 1

@@ -22,6 +22,7 @@ def run_factory_review(
     output_path: Path,
     summary_path: Path,
     submit_trace_if_configured: bool = False,
+    publish_github_summary: bool = False,
 ) -> dict[str, object]:
     diff = diff_path.read_text(encoding="utf-8")
     if len(diff.encode("utf-8")) > MAX_DIFF_BYTES:
@@ -97,7 +98,7 @@ def run_factory_review(
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(summary, encoding="utf-8")
     github_summary = os.environ.get("GITHUB_STEP_SUMMARY")
-    if github_summary:
+    if github_summary and publish_github_summary:
         with Path(github_summary).open("a", encoding="utf-8") as handle:
             handle.write(summary)
     return result
@@ -183,6 +184,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--summary", type=Path, required=True)
     parser.add_argument("--submit-trace-if-configured", action="store_true")
+    parser.add_argument("--github-summary", action="store_true")
     args = parser.parse_args(argv)
     run_factory_review(
         root=cast(Path, args.root),
@@ -190,6 +192,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         output_path=cast(Path, args.output),
         summary_path=cast(Path, args.summary),
         submit_trace_if_configured=cast(bool, args.submit_trace_if_configured),
+        publish_github_summary=cast(bool, args.github_summary),
     )
     return 0
 
