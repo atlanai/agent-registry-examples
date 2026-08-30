@@ -42,11 +42,12 @@ jobs:
 
       - name: Publish skills
         if: steps.credential.outputs.configured == 'true'
-        uses: atlanai/agent-registry-action@03d2634750b746cd0869a61c25a4eb1db77bf56f # fix/installer-digest-v0.1.2
+        uses: atlanai/agent-registry-action@9487aadcfafb880eb464c68f0675e20f5570f660 # fix/installer-digest-v0.1.2
         with:
           working-directory: .
           prune: "false"
           skill-bindings: >-
             {"skills/secure-pr-review":"skill_01m11gr8cjekhb5gvqn0k4x1ny","skills/trace-driven-skill-improvement":"skill_01m11gt6ncek08kcxwmqnt0bah"}
+          repository-source-alias: atlanai/software-factory-demo.git
         env:
           ATLANAI_TOKEN: ${{ secrets.ATLANAI_TOKEN }}
