@@ -6,7 +6,7 @@ registry_id: agent_01m11he6zdf88b5z381489b3xe
 provider: daytona
 environment: daytona-sdk-pr-review
 skills:
-  - secure-pr-review@1
+  - secure-pr-review@2
   - test-impact-analysis@1
   - review-evidence-summary@1
 entrypoint: python -m registry_pr_review_demo.factory_review

@@ -4,7 +4,7 @@ framework: kiro-cli
 provider: daytona
 environment: daytona-kiro-pr-review
 skills:
-  - secure-pr-review@1
+  - secure-pr-review@2
   - test-impact-analysis@1
   - review-evidence-summary@1
 entrypoint: kiro-cli chat --engine v3 --agent pr-review --no-interactive --trust-tools=read,grep --output-format stream-json
