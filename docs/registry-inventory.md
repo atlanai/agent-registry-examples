@@ -12,7 +12,7 @@ readback succeeds.
 | Environment | `daytona-sdk-pr-review` | `agent_environment_01m11hdztxfn8vm30g3z1s54h5` | 1 | Verified registered, cloud + limited network |
 | Environment | `daytona-cli-skill-improver` | `agent_environment_01m11he3c9eeht12m69nsr0c6s` | 1 | Verified registered, cloud + limited network |
 | Agent | `registry-pr-review-sdk` | `agent_01m11he6zdf88b5z381489b3xe` | 1 | Verified registered; LangGraph + three active `uses_skill` edges |
-| Agent | `kiro-pr-review-agent-v2` | `agent_01m1afk4evfvrtgc2yp2kex50g` | 1 | Replacement registered; Kiro CLI + three active `uses_skill` edges |
+| Agent | `kiro-pr-review-agent-api` | `agent_01m1apcr8ve08r88tyh5pcsspr` | 1 | Created through documented API; three active `uses_skill` edges; identity issuance blocked by HTTP 503 |
 | Agent | `registry-skill-improver-cli` | `agent_01m11hjdcmehrr4yg6jnjj8t38` | 1 | Verified registered; LangGraph + active `uses_skill` edge |
 | Agent framework | `kiro-cli` | `agent_framework_01m1a5cq3hfdg88xkbwpz4w807` | 1 | Verified registered |
 | Environment | `daytona-kiro-pr-review` | `agent_environment_01m1a5cqfdfz1vh7hga5qmpx9d` | 1 | Verified registered with restricted egress |
@@ -27,7 +27,7 @@ readback succeeds.
 |---|---|---:|---|---|---|---|
 | Reviewer v1 | `agent_01m11he6zdf88b5z381489b3xe` | 1 | `06cd432f9c7c5e182c896fcc969b12d4` | `daytona-ceeffd99-d723-4d88-89bd-b1052b025bf7-review-v1-contract2` | `output_01m11hsqegem09jfatqr5w5p45` | Daytona + LangGraph run; trace accepted and readable via skill facade |
 | Improvement analysis | `agent_01m11hjdcmehrr4yg6jnjj8t38` | 1 | `9e916c9e533d518e6a277bf7a4aa5761` | `daytona-ceeffd99-d723-4d88-89bd-b1052b025bf7-improver-v1` | `output_01m11hsqegem09jfatqr5w5p45` | Daytona + LangGraph run; CLI trace accepted, projection pending |
-| Kiro reviewer v2 | `agent_01m1afk4evfvrtgc2yp2kex50g` | 2 + 1 + 1 | Blocked: Agent key service 503 | Kiro `sess_64f726dd-234c-419c-811b-5df163080d80` | Daytona `kiro-result.json` | Daytona run validated: `changes_requested`, 3 findings, 3 exact skill fingerprints |
+| Kiro reviewer v2 | `agent_01m1apcr8ve08r88tyh5pcsspr` | 2 + 1 + 1 | Blocked: Agent key service 503 | Kiro `sess_64f726dd-234c-419c-811b-5df163080d80` | Daytona `kiro-result.json` | Daytona run validated: `changes_requested`, 3 findings, 3 exact skill fingerprints |
 
 ## Durable outputs
 

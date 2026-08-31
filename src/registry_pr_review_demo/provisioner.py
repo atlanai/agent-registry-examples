@@ -153,7 +153,7 @@ class RegistryProvisioner:
                     else (
                         "Review synthetic diffs with read-only Kiro tools and verified "
                         "Registry skills."
-                        if agent.name == "kiro-pr-review-agent-v2"
+                        if agent.name == "kiro-pr-review-agent-api"
                         else "Analyze version-scoped Registry traces and propose a bounded "
                         "skill patch."
                     )
@@ -201,7 +201,7 @@ class RegistryProvisioner:
         services = {
             "pr-review-agent": "atlan/pr-review-agent",
             "registry-skill-improver-cli": "atlan/registry-skill-improver-cli-agent",
-            "kiro-pr-review-agent-v2": "atlan/kiro-pr-review-agent-v2",
+            "kiro-pr-review-agent-api": "atlan/kiro-pr-review-agent-api",
         }
         for name, service in services.items():
             agent_id = agent_ids.get(name)
@@ -236,7 +236,7 @@ class RegistryProvisioner:
         services = {
             "pr-review-agent": "atlan/pr-review-agent",
             "registry-skill-improver-cli": "atlan/registry-skill-improver-cli-agent",
-            "kiro-pr-review-agent-v2": "atlan/kiro-pr-review-agent-v2",
+            "kiro-pr-review-agent-api": "atlan/kiro-pr-review-agent-api",
         }
         self._secrets.put(
             service=services[name],

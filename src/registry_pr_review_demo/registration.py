@@ -91,7 +91,7 @@ def build_desired_registry_state() -> DesiredRegistryState:
                 agent_framework_id=LANGGRAPH_FRAMEWORK_ID,
             ),
             DesiredAgent(
-                name="kiro-pr-review-agent-v2",
+                name="kiro-pr-review-agent-api",
                 agent_framework_id=None,
                 agent_framework_name=KIRO_FRAMEWORK_NAME,
             ),

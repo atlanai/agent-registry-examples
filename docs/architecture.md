@@ -34,7 +34,7 @@ All objects live in the Data workspace `workspace_01m0g43eb2fmgbv21dc7ygs7rc`.
 | Environment | `daytona-cli-skill-improver` | LangGraph plus checksum-pinned Linux `atlanai` |
 | Environment | `daytona-kiro-pr-review` | Pinned Kiro launcher plus internal `atlan_ai` wheel |
 | Agent | `pr-review-agent` | Local alias for the immutable LangGraph Agent ID |
-| Agent | `kiro-pr-review-agent-v2` | Replacement read-only Kiro reviewer with structured JSONL output |
+| Agent | `kiro-pr-review-agent-api` | API-created read-only Kiro reviewer with structured JSONL output |
 | Agent | `registry-skill-improver-cli` | Reads Registry traces, proposes a patch, exports through CLI |
 | Skill | `secure-pr-review` | Versioned review policy and deterministic rules |
 | Skill | `test-impact-analysis` | Focused affected-test and regression-gap analysis |

@@ -1,6 +1,6 @@
-name: kiro-pr-review-agent-v2
+name: kiro-pr-review-agent-api
 display_name: Kiro PR Review Agent
-registry_id: agent_01m1afk4evfvrtgc2yp2kex50g
+registry_id: agent_01m1apcr8ve08r88tyh5pcsspr
 framework: kiro-cli
 provider: daytona
 environment: daytona-kiro-pr-review

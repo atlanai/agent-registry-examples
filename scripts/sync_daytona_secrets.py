@@ -20,7 +20,7 @@ def main() -> int:
         ),
         (
             "kiro-pr-review-agent-key",
-            keychain.get(service="atlan/kiro-pr-review-agent-v2", account=ACCOUNT).decode(),
+            keychain.get(service="atlan/kiro-pr-review-agent-api", account=ACCOUNT).decode(),
         ),
         (
             "registry-cli-agent-key",

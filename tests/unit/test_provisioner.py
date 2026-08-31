@@ -74,7 +74,7 @@ def test_provisioner_captures_agent_keys_without_persisting_them() -> None:
     assert set(secrets.values) == {
         "atlan/pr-review-agent",
         "atlan/registry-skill-improver-cli-agent",
-        "atlan/kiro-pr-review-agent-v2",
+        "atlan/kiro-pr-review-agent-api",
     }
     serialized_state = json.dumps(state)
     assert "secret-registry" not in serialized_state
@@ -86,5 +86,5 @@ def test_provisioner_captures_agent_keys_without_persisting_them() -> None:
     assert secrets.values == {
         "atlan/pr-review-agent": b"rotated-key",
         "atlan/registry-skill-improver-cli-agent": b"rotated-key",
-        "atlan/kiro-pr-review-agent-v2": b"rotated-key",
+        "atlan/kiro-pr-review-agent-api": b"rotated-key",
     }
