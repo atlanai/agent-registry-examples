@@ -381,6 +381,7 @@ KIRO_REVIEW_SKILLS = (
 )
 KIRO_RUNTIME_DOMAINS = (
     "agentgateway.atlan.engineering",
+    "releases.atlan.com",
     "app.kiro.dev",
     "assets.app.kiro.dev",
     "cognito-identity.us-east-1.amazonaws.com",

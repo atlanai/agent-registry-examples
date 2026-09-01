@@ -36,6 +36,7 @@ def test_kiro_environment_allows_current_google_device_flow_hosts() -> None:
     )
 
     assert {
+        "releases.atlan.com",
         "app.kiro.dev",
         "assets.app.kiro.dev",
         "cognito-identity.us-east-1.amazonaws.com",
