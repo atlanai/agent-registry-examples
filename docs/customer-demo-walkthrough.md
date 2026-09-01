@@ -121,6 +121,10 @@ skill fingerprints inside Daytona:
 That screenshot is historical acceptance evidence from 30 August 2026. Its sandbox has since been
 deleted. Do not present it as a currently running sandbox.
 
+The current acceptance sandbox is `software-factory-kiro-acceptance-4`
+(`56050dee-0103-43d3-82a9-5b1c73bf2d88`). Open its terminal only to show the bounded environment;
+do not expose the stored JSONL stream or authentication state.
+
 ### 7. Open each Agent in Atlan
 
 Open the PR Review Agent, then the Kiro PR Review Agent. On each profile:
@@ -160,30 +164,29 @@ Checked on 1 September 2026:
 | Final Agent creation | Pass | Both create calls returned HTTP 201 and reveal-once 90-day API keys |
 | Agent machine identity | Pass | `atlanai auth status` and `registry:/auth/whoami` resolve the LangGraph key to its Agent ID |
 | Shared skill relationships | Pass | Each final Agent has three active `uses_skill` relationships |
-| Daytona Agent-secret mount | Pass, incompatible with CLI exchange | Daytona correctly injects a 27-character placeholder rather than plaintext |
+| Daytona Agent-secret mount | Pass | Daytona injects an opaque placeholder; the pinned Atlan CLI exchanges it without exposing plaintext |
 | LangGraph execution in Daytona | Pass through review; telemetry blocked | Agent-authenticated OTLP ingest returns HTTP 503 `service_unavailable` |
 | Kiro 2.20.1 runtime | Pass | Complete three-binary archive and individual SHA-256 values verified |
-| Kiro Free device login in new Daytona sandbox | Blocked | Kiro returns `dispatch failure` under Daytona's tier-level network restriction |
-| Current final-Agent trace, Session, Output, Usage | Not complete | The run fails closed; no synthetic evidence was created |
+| Kiro Free device login in Daytona | Pass | Google/AWS device flow completed after the exact OIDC and Kiro hosts were allowlisted; no paid plan required |
+| Kiro review result | Pass | `changes_requested`, 3 findings, and all 3 Registry skill fingerprints |
+| Kiro Agent trace | Pass | Trace `d5507429ce9bb91dbab6bff7cd2ccbef` verified through the Agent and all 3 Skill facades |
+| Kiro Session and Output | Pass | Session `session_01m1fn335xf10ss2bb85vy53wr` has 2 sanitized turns; Output `output_01m1fn33yaf1s8jmjf5244vxv8` links the GitHub run |
+| Native Kiro Usage | Pass | Atlan shows the run, 100% error-free, and a content-free Full trace with 3 Skill tool calls |
 
-This table is deliberately blunt. Do not show an empty Usage page and imply that a trace exists.
-The historical Kiro run proves the runtime and review contract; the final Agent records prove
-identity and relationships. A current Agent-authenticated trace still needs the Registry OTLP
-service and Daytona/Kiro network path to be available in the same run.
+Open the newer Session titled **Governed Kiro review of synthetic order-service change**. It shows
+two turns without raw code or diff content. An older zero-turn Session remains because the Session
+API is append-only; do not use that historical row in the customer walkthrough.
 
 ## Recovery checklist before a customer call
 
-1. Confirm `POST /otel/v1/traces` succeeds with the final Agent key through `atlanai api`.
-2. Re-run the LangGraph lane and require `trace_id`, `session_id`, and `output_id` in the result.
-3. Provide either a Kiro Pro API key or Daytona network access that permits the official Google
-   device-flow endpoints.
-4. Re-run Kiro against the same patch and require `changes_requested` plus three skill fingerprints.
-5. Read both Agent trace facades and all three Skill trace facades.
-6. Refresh both Agent Usage pages and capture new app-scoped screenshots.
+1. Open the top two-turn Kiro Session and verify the sanitized request and response.
+2. Open Kiro Usage, select the latest `software_factory.pr_review` run, and switch to **Full trace**.
+3. Verify three tool calls and the `Content not stored for this run` notice.
+4. Re-run the LangGraph lane and require `trace_id`, `session_id`, and `output_id` before adding it
+   to the live walkthrough.
 
-If any check fails, keep the corresponding tab out of the customer walkthrough. The repository is
-still useful as an architecture demo, but it is not honest to call the live telemetry acceptance
-complete.
+The Kiro lane is ready for the live walkthrough. Keep the LangGraph Usage tab out until its current
+Agent-authenticated telemetry acceptance also passes.
 
 ## Useful links
 

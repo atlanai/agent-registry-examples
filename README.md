@@ -121,11 +121,13 @@ digests, decision, finding count, and matched rule IDs.
 The final customer-demo Agents created on 1 September 2026 are
 `agent_01m1ejp36efnsrw6m8w20atdr3` (LangGraph) and
 `agent_01m1ejp2w6fy0synanm0qp4akh` (Kiro). Each has three active `uses_skill` relationships.
-Current Agent-authenticated telemetry acceptance is still blocked by HTTP 503 from Registry OTLP
-ingest and Kiro device-flow dispatch under Daytona's tier-level network restriction. No trace,
-Session, Output, or Usage entry is claimed for those final identities. See the
-[customer demo walkthrough](docs/customer-demo-walkthrough.md#live-acceptance-status) before using
-the live tabs with a customer.
+The Kiro lane is live: Daytona sandbox `56050dee-0103-43d3-82a9-5b1c73bf2d88` produced trace
+`d5507429ce9bb91dbab6bff7cd2ccbef`, two-turn Session
+`session_01m1fn335xf10ss2bb85vy53wr`, and Output
+`output_01m1fn33yaf1s8jmjf5244vxv8`. Atlan Usage and all three Skill trace facades were verified.
+The LangGraph final-Agent telemetry lane remains blocked and should stay out of the live demo. See
+the [customer demo walkthrough](docs/customer-demo-walkthrough.md#live-acceptance-status) for the
+recording-safe tab order.
 
 ## Run locally
 
