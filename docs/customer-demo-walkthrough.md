@@ -168,12 +168,12 @@ Checked on 1 September 2026:
 | LangGraph execution in Daytona | Pass through review; telemetry blocked | Agent-authenticated OTLP ingest returns HTTP 503 `service_unavailable` |
 | Kiro 2.20.1 runtime | Pass | Complete three-binary archive and individual SHA-256 values verified |
 | Kiro Free device login in Daytona | Pass | Google/AWS device flow completed after the exact OIDC and Kiro hosts were allowlisted; no paid plan required |
-| Kiro review result | Pass | `changes_requested`, 3 findings, and all 3 Registry skill fingerprints |
-| Kiro Agent trace | Pass | Trace `d5507429ce9bb91dbab6bff7cd2ccbef` verified through the Agent and all 3 Skill facades |
-| Kiro Session and Output | Pass | Session `session_01m1fn335xf10ss2bb85vy53wr` has 2 sanitized turns; Output `output_01m1fn33yaf1s8jmjf5244vxv8` links the GitHub run |
-| Native Kiro Usage | Pass | Atlan shows the run, 100% error-free, and a content-free Full trace with 3 Skill tool calls |
+| Kiro review result | Pass | `changes_requested`, 2 findings, and all 3 Registry skill fingerprints |
+| Kiro Agent trace | Pass | Ordered trace `47fe8b2d2bc824962bb8a85c4b5e175e` verified through the Agent and all 3 Skill facades |
+| Kiro Session and Output | Pass | Session `session_01m1fp7y6det9vzcdr2esvgcte` has 2 sanitized turns; Output `output_01m1fp7z1gewhvem8kqg9xmskf` links the GitHub run |
+| Native Kiro Usage | Pass | Latest run shows instruction → prompt → 3 named Skills → response, `kiro-auto`, 5,291 tokens, and USD 0.006888 plan-equivalent cost |
 
-Open the newer Session titled **Governed Kiro review of synthetic order-service change**. It shows
+Open the newer Session titled **Governed Kiro review with usage and cost**. It shows
 two turns without raw code or diff content. An older zero-turn Session remains because the Session
 API is append-only; do not use that historical row in the customer walkthrough.
 
@@ -181,8 +181,9 @@ API is append-only; do not use that historical row in the customer walkthrough.
 
 1. Open the top two-turn Kiro Session and verify the sanitized request and response.
 2. Open Kiro Usage, select the latest `software_factory.pr_review` run, and switch to **Full trace**.
-3. Verify three tool calls and the `Content not stored for this run` notice.
-4. Re-run the LangGraph lane and require `trace_id`, `session_id`, and `output_id` before adding it
+3. Verify the three named Skill calls appear before the final response and open each fingerprint.
+4. Explain that the displayed USD value is a Pro-plan-equivalent estimate; the Free-plan bill is USD 0.
+5. Re-run the LangGraph lane and require `trace_id`, `session_id`, and `output_id` before adding it
    to the live walkthrough.
 
 The Kiro lane is ready for the live walkthrough. Keep the LangGraph Usage tab out until its current

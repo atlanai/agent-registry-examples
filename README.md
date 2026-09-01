@@ -121,10 +121,12 @@ digests, decision, finding count, and matched rule IDs.
 The final customer-demo Agents created on 1 September 2026 are
 `agent_01m1ejp36efnsrw6m8w20atdr3` (LangGraph) and
 `agent_01m1ejp2w6fy0synanm0qp4akh` (Kiro). Each has three active `uses_skill` relationships.
-The Kiro lane is live: Daytona sandbox `56050dee-0103-43d3-82a9-5b1c73bf2d88` produced trace
-`d5507429ce9bb91dbab6bff7cd2ccbef`, two-turn Session
-`session_01m1fn335xf10ss2bb85vy53wr`, and Output
-`output_01m1fn33yaf1s8jmjf5244vxv8`. Atlan Usage and all three Skill trace facades were verified.
+The Kiro lane is live: Daytona sandbox `56050dee-0103-43d3-82a9-5b1c73bf2d88` produced ordered trace
+`47fe8b2d2bc824962bb8a85c4b5e175e`, two-turn Session
+`session_01m1fp7y6det9vzcdr2esvgcte`, and Output
+`output_01m1fp7z1gewhvem8kqg9xmskf`. Atlan Usage shows sanitized content, three named Skills,
+`kiro-auto`, 5,291 observed context/tool tokens, and USD 0.006888 plan-equivalent cost. The actual
+Free-plan bill is USD 0. All three Skill trace facades were verified.
 The LangGraph final-Agent telemetry lane remains blocked and should stay out of the live demo. See
 the [customer demo walkthrough](docs/customer-demo-walkthrough.md#live-acceptance-status) for the
 recording-safe tab order.

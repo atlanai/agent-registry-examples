@@ -76,6 +76,8 @@ def parse_kiro_stream(raw: str) -> tuple[dict[str, object], tuple[str, ...]]:
     tool_names: list[str] = []
     final: object | None = None
     model: str | None = None
+    kiro_tool_tokens = 0
+    kiro_credits_used = 0.0
     for event in events:
         raw_model = event.get("model", event.get("model_id"))
         if isinstance(raw_model, str) and 0 < len(raw_model) <= 200:
@@ -98,16 +100,39 @@ def parse_kiro_stream(raw: str) -> tuple[dict[str, object], tuple[str, ...]]:
                     if isinstance(meta, dict):
                         kiro = cast(dict[str, object], meta).get("kiro")
                         if isinstance(kiro, dict):
-                            summaries = cast(dict[str, object], kiro).get("promptTurnSummaries", [])
+                            typed_kiro = cast(dict[str, object], kiro)
+                            breakdown = typed_kiro.get("breakdown")
+                            if isinstance(breakdown, dict):
+                                tools = cast(dict[str, object], breakdown).get("tools")
+                                if isinstance(tools, dict):
+                                    raw_tokens = cast(dict[str, object], tools).get("tokens")
+                                    if (
+                                        isinstance(raw_tokens, int)
+                                        and not isinstance(raw_tokens, bool)
+                                        and raw_tokens >= 0
+                                    ):
+                                        kiro_tool_tokens = raw_tokens
+                            summaries = typed_kiro.get("promptTurnSummaries", [])
                             if isinstance(summaries, list):
+                                snapshot_credits = 0.0
                                 for summary in cast(list[object], summaries):
                                     if not isinstance(summary, dict):
                                         continue
-                                    used = cast(dict[str, object], summary).get("usedTools", [])
+                                    typed_summary = cast(dict[str, object], summary)
+                                    raw_usage = typed_summary.get("usage")
+                                    if (
+                                        isinstance(raw_usage, (int, float))
+                                        and not isinstance(raw_usage, bool)
+                                        and raw_usage >= 0
+                                    ):
+                                        snapshot_credits += float(raw_usage)
+                                    used = typed_summary.get("usedTools", [])
                                     if isinstance(used, list):
                                         for raw_name in cast(list[object], used):
                                             if isinstance(raw_name, str):
                                                 tool_names.append(raw_name)
+                                if snapshot_credits > 0:
+                                    kiro_credits_used = snapshot_credits
         if event_type in {"result", "assistant", "TurnEnd"}:
             final = event.get("result", event.get("content", event.get("output")))
         if event_type == "runFinished":
@@ -131,6 +156,8 @@ def parse_kiro_stream(raw: str) -> tuple[dict[str, object], tuple[str, ...]]:
     _validate_result(result)
     if model is not None:
         result["model"] = model
+    result["kiro_tool_tokens"] = kiro_tool_tokens
+    result["kiro_credits_used"] = kiro_credits_used
     normalized_tools: list[str] = []
     for tool_name in tool_names:
         if tool_name not in ALLOWED_KIRO_TOOLS:

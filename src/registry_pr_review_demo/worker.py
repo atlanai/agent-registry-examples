@@ -224,6 +224,21 @@ def run_kiro_trace_job(
         if key in allowed_attribute_names
     }
     findings = _sequence(result.get("findings"), "findings")
+    model = result.get("model", "kiro-auto")
+    if not isinstance(model, str) or not model:
+        raise ValueError("Kiro model must be a non-empty string")
+    input_tokens = result.get("kiro_tool_tokens", 0)
+    if isinstance(input_tokens, bool) or not isinstance(input_tokens, int) or input_tokens < 0:
+        raise ValueError("Kiro tool tokens must be a non-negative integer")
+    credits_used = _number(result.get("kiro_credits_used", 0.0), "Kiro credits used")
+    if credits_used < 0:
+        raise ValueError("Kiro credits used must be non-negative")
+    assistant_response = _kiro_assistant_response(
+        decision=_string(result, "decision"),
+        findings=findings,
+        skills=tuple(configured),
+        credits_used=credits_used,
+    )
     receipt = (submitter or KiroCliTraceSubmitter(workspace_id=DATA_WORKSPACE_ID)).submit(
         KiroCliTraceRecord(
             session_id=_string(raw_payload, "session_id"),
@@ -233,6 +248,11 @@ def run_kiro_trace_job(
             decision=_string(result, "decision"),
             finding_count=len(findings),
             tool_names=tool_names,
+            model=model,
+            input_tokens=input_tokens,
+            credits_used=credits_used,
+            estimated_cost_usd=credits_used * 0.02,
+            assistant_response=assistant_response,
         )
     )
     if not receipt.accepted:
@@ -240,6 +260,40 @@ def run_kiro_trace_job(
     output = dict(result)
     output["trace_id"] = receipt.trace_id
     return output
+
+
+def _kiro_assistant_response(
+    *,
+    decision: str,
+    findings: Sequence[object],
+    skills: tuple[tuple[str, SkillFingerprint], ...],
+    credits_used: float,
+) -> str:
+    lines = [f"Decision: {decision}. Kiro returned {len(findings)} findings."]
+    for raw in findings:
+        finding = _mapping(raw, "finding")
+        rule_id = _string(finding, "rule_id")
+        severity = finding.get("severity", "unknown")
+        message = finding.get("message", "Finding recorded by Kiro.")
+        if not isinstance(severity, str) or not isinstance(message, str):
+            raise ValueError("Kiro finding summary fields must be strings")
+        line = finding.get("line")
+        location = (
+            f" at diff line {line}" if isinstance(line, int) and not isinstance(line, bool) else ""
+        )
+        lines.append(f"- [{severity}] {rule_id}{location}: {message}")
+    versions = ", ".join(
+        f"{fingerprint.name} v{fingerprint.registry_version}" for _, fingerprint in skills
+    )
+    estimated_cost = credits_used * 0.02
+    lines.extend(
+        (
+            f"Skills verified: {versions}.",
+            f"Kiro usage: {credits_used:.6f} credits. Actual billed cost on Free plan: "
+            f"USD 0.00. Pro-plan-equivalent estimate: USD {estimated_cost:.6f}.",
+        )
+    )
+    return "\n".join(lines)
 
 
 def _parse_job(
@@ -420,6 +474,12 @@ def _integer(data: Mapping[str, object], key: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError(f"{key} must be an integer")
     return value
+
+
+def _number(value: object, name: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{name} must be numeric")
+    return float(value)
 
 
 def _optional_string(data: Mapping[str, object], key: str) -> str | None:

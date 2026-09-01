@@ -49,6 +49,11 @@ class KiroCliTraceRecord:
     decision: str
     finding_count: int
     tool_names: tuple[str, ...]
+    model: str
+    input_tokens: int
+    credits_used: float
+    estimated_cost_usd: float
+    assistant_response: str
 
 
 def _hex_id(seed: str, length: int) -> str:
@@ -61,6 +66,14 @@ def _string_attribute(key: str, value: str) -> dict[str, object]:
 
 def _int_attribute(key: str, value: int) -> dict[str, object]:
     return {"key": key, "value": {"intValue": str(value)}}
+
+
+def _double_attribute(key: str, value: float) -> dict[str, object]:
+    return {"key": key, "value": {"doubleValue": value}}
+
+
+def _bool_attribute(key: str, value: bool) -> dict[str, object]:
+    return {"key": key, "value": {"boolValue": value}}
 
 
 def build_otlp_payload(
@@ -146,12 +159,18 @@ def build_kiro_otlp_payload(
     ended = end_time_ns if end_time_ns is not None else started + 1_000_000
     trace_id = _hex_id(record.session_id, 32)
     root_span_id = _hex_id(f"{record.session_id}:root", 16)
+    turn_span_id = _hex_id(f"{record.session_id}:turn:1", 16)
+    request_chat_span_id = _hex_id(f"{record.session_id}:chat:request", 16)
+    response_chat_span_id = _hex_id(f"{record.session_id}:chat:response", 16)
     root_attributes = [
         _string_attribute("atlan.span.type", "task"),
         _string_attribute("atlan.agent.id", record.agent_id),
         _string_attribute("agent.runtime", "kiro-cli-daytona"),
         _string_attribute("review.decision", record.decision),
         _int_attribute("review.finding_count", record.finding_count),
+        _string_attribute("atlan.trace.content_policy", "sanitized-demo"),
+        _bool_attribute("atlan.trace.content_stored", True),
+        _int_attribute("atlan.event.seq", 0),
     ]
     root_attributes.extend(
         _string_attribute(key, value) for key, value in sorted(record.attributes.items())
@@ -173,19 +192,72 @@ def build_kiro_otlp_payload(
             "endTimeUnixNano": str(ended),
             "attributes": root_attributes,
             "events": events,
-        }
+        },
+        {
+            "traceId": trace_id,
+            "spanId": turn_span_id,
+            "parentSpanId": root_span_id,
+            "name": "kiro-review.turn 1",
+            "startTimeUnixNano": str(started + 1),
+            "endTimeUnixNano": str(ended - 1),
+            "attributes": [
+                _string_attribute("atlan.span.type", "task"),
+                _string_attribute("gen_ai.conversation.id", record.session_id),
+                _string_attribute("gen_ai.agent.id", record.agent_id),
+                _string_attribute("gen_ai.agent.name", "Kiro PR Review Agent"),
+                _string_attribute("gen_ai.provider.name", "kiro"),
+                _int_attribute("atlan.event.seq", 1),
+            ],
+        },
+        {
+            "traceId": trace_id,
+            "spanId": request_chat_span_id,
+            "parentSpanId": turn_span_id,
+            "name": f"chat {record.model} request",
+            "kind": 3,
+            "startTimeUnixNano": str(started + 2),
+            "endTimeUnixNano": str(ended - 2),
+            "attributes": _kiro_request_chat_attributes(record),
+        },
     ]
-    for index, (skill_id, fingerprint) in enumerate(record.skills):
+    for index, (skill_id, fingerprint) in enumerate(record.skills, start=3):
+        arguments = json.dumps(
+            {
+                "skill_id": skill_id,
+                "name": fingerprint.name,
+                "version": fingerprint.registry_version,
+                "source_digest": fingerprint.source_digest,
+            },
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        tool_result = json.dumps(
+            {"decision": record.decision, "status": "fingerprint_verified"},
+            separators=(",", ":"),
+            sort_keys=True,
+        )
         spans.append(
             {
                 "traceId": trace_id,
                 "spanId": _hex_id(f"{record.session_id}:skill:{skill_id}", 16),
-                "parentSpanId": root_span_id,
-                "name": "review.skill",
+                "parentSpanId": request_chat_span_id,
+                "name": f"execute_tool {fingerprint.name}",
                 "startTimeUnixNano": str(started + index + 1),
                 "endTimeUnixNano": str(ended - index - 1),
                 "attributes": [
                     _string_attribute("atlan.span.type", "tool"),
+                    _string_attribute("openinference.span.kind", "TOOL"),
+                    _string_attribute("gen_ai.tool.name", fingerprint.name),
+                    _string_attribute("gen_ai.tool.type", "skill"),
+                    _string_attribute("gen_ai.tool.call.id", f"skill-{index}"),
+                    _string_attribute("gen_ai.tool.call.arguments", arguments),
+                    _string_attribute("gen_ai.tool.call.result", tool_result),
+                    _string_attribute("input.value", arguments),
+                    _string_attribute("output.value", tool_result),
+                    _string_attribute(
+                        "atlan.tool.target",
+                        f"{fingerprint.name}@{fingerprint.registry_version}",
+                    ),
                     _string_attribute("atlan.skill.id", skill_id),
                     _string_attribute("atlan.registry.skill.id", skill_id),
                     _string_attribute("atlan.skill.name", fingerprint.name),
@@ -197,9 +269,23 @@ def build_kiro_otlp_payload(
                     _string_attribute("atlan.skill.source_digest", fingerprint.source_digest),
                     _string_attribute("atlan.skill.skillmd_sha256", fingerprint.skillmd_sha256),
                     _string_attribute("atlan.skill.fingerprint_source", "registry"),
+                    _int_attribute("atlan.event.seq", index),
                 ],
             }
         )
+    response_seq = 3 + len(record.skills)
+    spans.append(
+        {
+            "traceId": trace_id,
+            "spanId": response_chat_span_id,
+            "parentSpanId": turn_span_id,
+            "name": f"chat {record.model} final",
+            "kind": 3,
+            "startTimeUnixNano": str(started + response_seq + 1),
+            "endTimeUnixNano": str(ended - response_seq - 1),
+            "attributes": _kiro_response_chat_attributes(record, seq=response_seq),
+        }
+    )
     return {
         "resourceSpans": [
             {
@@ -211,13 +297,86 @@ def build_kiro_otlp_payload(
                 },
                 "scopeSpans": [
                     {
-                        "scope": {"name": "software-factory-kiro-cli", "version": "0.1.0"},
+                        "scope": {
+                            "name": "software-factory-kiro-cli-enriched",
+                            "version": "0.2.0",
+                        },
                         "spans": spans,
                     }
                 ],
             }
         ]
     }
+
+
+def _kiro_common_chat_attributes(record: KiroCliTraceRecord) -> list[dict[str, object]]:
+    return [
+        _string_attribute("atlan.span.type", "llm"),
+        _string_attribute("openinference.span.kind", "LLM"),
+        _string_attribute("gen_ai.request.model", record.model),
+        _string_attribute("gen_ai.response.model", record.model),
+        _string_attribute("llm.model_name", record.model),
+        _string_attribute("gen_ai.provider.name", "kiro"),
+    ]
+
+
+def _kiro_request_chat_attributes(record: KiroCliTraceRecord) -> list[dict[str, object]]:
+    system_text = (
+        "You are a read-only Kiro PR review agent running in Daytona. Use only read, grep, "
+        "and disclose_context. Apply all Registry-governed skills. Do not execute or modify "
+        "code, mutate Git, call the web, or store secrets."
+    )
+    prompt_text = (
+        "Review the bounded synthetic order-service change using all Registry-governed skills. "
+        "Return a validated decision with evidence. Raw source and diff content are intentionally "
+        "omitted from telemetry."
+    )
+    input_messages = [
+        {"role": "system", "parts": [{"type": "text", "content": system_text}]},
+        {"role": "user", "parts": [{"type": "text", "content": prompt_text}]},
+    ]
+    return [
+        *_kiro_common_chat_attributes(record),
+        _string_attribute("input.value", json.dumps(input_messages, separators=(",", ":"))),
+        _string_attribute("input.mime_type", "application/json"),
+        _int_attribute("atlan.event.seq", 2),
+    ]
+
+
+def _kiro_response_chat_attributes(
+    record: KiroCliTraceRecord, *, seq: int
+) -> list[dict[str, object]]:
+    output_messages = [
+        {
+            "role": "assistant",
+            "parts": [{"type": "text", "content": record.assistant_response}],
+        }
+    ]
+    return [
+        *_kiro_common_chat_attributes(record),
+        _string_attribute("output.value", json.dumps(output_messages, separators=(",", ":"))),
+        _string_attribute("output.mime_type", "application/json"),
+        _int_attribute("gen_ai.usage.input_tokens", record.input_tokens),
+        _int_attribute("gen_ai.usage.output_tokens", 0),
+        _int_attribute("llm.token_count.prompt", record.input_tokens),
+        _int_attribute("llm.token_count.completion", 0),
+        _int_attribute("llm.token_count.total", record.input_tokens),
+        _double_attribute("llm.cost.total", record.estimated_cost_usd),
+        _double_attribute("gen_ai.usage.cost", record.estimated_cost_usd),
+        _double_attribute("atlan.kiro.credits_used", record.credits_used),
+        _double_attribute("atlan.cost.billed_usd", 0.0),
+        _double_attribute("atlan.cost.plan_equivalent_usd", record.estimated_cost_usd),
+        _string_attribute(
+            "atlan.cost.basis",
+            "Kiro Pro plan-equivalent at USD 0.02 per credit; "
+            "actual Free-plan billed cost is USD 0",
+        ),
+        _string_attribute("atlan.usage.input_token_basis", "kiro.breakdown.tools.tokens"),
+        _bool_attribute("atlan.model.actual_provider_reported", False),
+        _int_attribute("atlan.chat.text_parts", 1),
+        _int_attribute("atlan.chat.reasoning_parts", 0),
+        _int_attribute("atlan.event.seq", seq),
+    ]
 
 
 SDK_ALLOWED_ATTRIBUTE_NAMES = {

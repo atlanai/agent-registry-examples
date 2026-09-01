@@ -29,7 +29,7 @@ readback succeeds.
 | Improvement analysis | `agent_01m11hjdcmehrr4yg6jnjj8t38` | 1 | `9e916c9e533d518e6a277bf7a4aa5761` | `daytona-ceeffd99-d723-4d88-89bd-b1052b025bf7-improver-v1` | `output_01m11hsqegem09jfatqr5w5p45` | Daytona + LangGraph run; CLI trace accepted, projection pending |
 | Kiro reviewer v2 | `agent_01m1apcr8ve08r88tyh5pcsspr` | 2 + 1 + 1 | Blocked: Agent key service 503 | Kiro `sess_64f726dd-234c-419c-811b-5df163080d80` | Daytona `kiro-result.json` | Daytona run validated: `changes_requested`, 3 findings, 3 exact skill fingerprints |
 | Final LangGraph acceptance | `agent_01m1ejp36efnsrw6m8w20atdr3` | 2 + 1 + 1 | Blocked: OTLP HTTP 503 | Not created | Not created | Review executed in ephemeral Daytona; Agent-authenticated trace ingest failed closed |
-| Final Kiro acceptance | `agent_01m1ejp2w6fy0synanm0qp4akh` | 2 + 1 + 1 | `d5507429ce9bb91dbab6bff7cd2ccbef` | `session_01m1fn335xf10ss2bb85vy53wr` | `output_01m1fn33yaf1s8jmjf5244vxv8` | Agent-authenticated Daytona run; `changes_requested`, 3 findings, 3 Skill facades, 2 sanitized turns, native Usage verified |
+| Final Kiro acceptance | `agent_01m1ejp2w6fy0synanm0qp4akh` | 2 + 1 + 1 | `47fe8b2d2bc824962bb8a85c4b5e175e` | `session_01m1fp7y6det9vzcdr2esvgcte` | `output_01m1fp7z1gewhvem8kqg9xmskf` | Agent-authenticated Daytona run; ordered instruction → prompt → 3 Skills → response; 5,291 tokens; USD 0.006888 plan-equivalent cost; 2 findings |
 
 ## Durable outputs
 
@@ -54,12 +54,15 @@ changing the archive.
   `2de549a7f584f748f8e082e7c88b18a0e916ef3051f06be2aeddfefa6b13ea59`.
 - Kiro authenticated from the sandbox with Google device flow on the Free plan.
 - Kiro v3 used only `read`, `grep`, and the read-only `disclose_context` skill activator.
-- Validated result: `changes_requested`, 3 findings, all 3 exact Registry skill fingerprints.
+- Validated result: `changes_requested`, 2 findings, all 3 exact Registry skill fingerprints.
 - GitHub bootstrap run: `33570899213`.
-- Agent-authenticated trace `d5507429ce9bb91dbab6bff7cd2ccbef` is readable through the Agent
-  facade and all three Skill facades.
-- Session `session_01m1fn335xf10ss2bb85vy53wr` records two sanitized messages and links Output
-  `output_01m1fn33yaf1s8jmjf5244vxv8`. Native Usage shows the run and Full trace.
+- Ordered Agent-authenticated trace `47fe8b2d2bc824962bb8a85c4b5e175e` is readable through the Agent
+  facade and all three Skill facades. It stores sanitized instruction, prompt, response, named Skill
+  calls, `kiro-auto`, 5,291 observed Kiro context/tool tokens, and USD 0.006888 plan-equivalent cost.
+- Session `session_01m1fp7y6det9vzcdr2esvgcte` records two sanitized messages and links Output
+  `output_01m1fp7z1gewhvem8kqg9xmskf`. Native Usage shows the ordered trace and content.
+- The dollar value is an estimate derived from 0.344391 Kiro credits at the published Pro plan rate
+  of USD 0.02 per credit. The actual billed cost on the Free plan is USD 0.
 - An earlier Session remains with zero turns. The Session API is append-only and exposes no update
   or delete operation; use the newer two-turn Session in the demo.
 

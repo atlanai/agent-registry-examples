@@ -54,15 +54,17 @@ def test_parse_current_v3_stream_reads_fenced_result_and_sanitized_tools() -> No
                         "update": {
                             "_meta": {
                                 "kiro": {
+                                    "breakdown": {"tools": {"tokens": 5291}},
                                     "promptTurnSummaries": [
                                         {
+                                            "usage": 0.3443911164179104,
                                             "usedTools": [
                                                 "read_file",
                                                 "disclose_context",
                                                 "read_file",
-                                            ]
+                                            ],
                                         }
-                                    ]
+                                    ],
                                 }
                             }
                         }
@@ -84,6 +86,8 @@ def test_parse_current_v3_stream_reads_fenced_result_and_sanitized_tools() -> No
     parsed, tools = parse_kiro_stream(stream)
 
     assert parsed["decision"] == "changes_requested"
+    assert parsed["kiro_tool_tokens"] == 5291
+    assert parsed["kiro_credits_used"] == pytest.approx(0.3443911164179104)
     assert tools == ("read", "disclose_context")
 
 

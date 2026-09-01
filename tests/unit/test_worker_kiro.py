@@ -46,7 +46,16 @@ def test_kiro_trace_worker_submits_agent_and_skill_evidence_through_cli(
         "attributes": {"github.repository": "atlanai/software-factory-demo"},
         "result": {
             "decision": "changes_requested",
-            "findings": [{"rule_id": "parameterize-sql"}],
+            "findings": [
+                {
+                    "rule_id": "parameterize-sql",
+                    "severity": "critical",
+                    "message": "Use a parameterized query.",
+                }
+            ],
+            "model": "kiro-auto",
+            "kiro_tool_tokens": 5291,
+            "kiro_credits_used": 0.3443911164179104,
             "skills_used": [
                 {
                     "id": skill["id"],
@@ -65,6 +74,11 @@ def test_kiro_trace_worker_submits_agent_and_skill_evidence_through_cli(
     assert submitter.record is not None
     assert submitter.record.agent_id == "agent_kiro"
     assert submitter.record.tool_names == ("read", "grep")
+    assert submitter.record.model == "kiro-auto"
+    assert submitter.record.input_tokens == 5291
+    assert submitter.record.credits_used == pytest.approx(0.3443911164179104)
+    assert submitter.record.estimated_cost_usd == pytest.approx(0.006887822328358208)
+    assert "parameterize-sql" in submitter.record.assistant_response
     assert {skill_id for skill_id, _ in submitter.record.skills} == {
         "skill_secure",
         "skill_tests",

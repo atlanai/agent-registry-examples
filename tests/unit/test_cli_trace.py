@@ -106,19 +106,45 @@ def test_kiro_cli_trace_uses_rest_with_agent_skills_and_sanitized_tools(
         decision="changes_requested",
         finding_count=1,
         tool_names=("read", "grep"),
+        model="kiro-auto",
+        input_tokens=5291,
+        credits_used=0.3443911164179104,
+        estimated_cost_usd=0.006887822328358208,
+        assistant_response="Changes requested with one verified finding.",
     )
     payload = build_kiro_otlp_payload(record, start_time_ns=1_000, end_time_ns=2_000)
     spans = payload["resourceSpans"][0]["scopeSpans"][0]["spans"]
+    assert len(spans) == 5
     root_attributes = {
         item["key"]: next(iter(item["value"].values())) for item in spans[0]["attributes"]
     }
+    request_attributes = {
+        item["key"]: next(iter(item["value"].values())) for item in spans[2]["attributes"]
+    }
     skill_attributes = {
-        item["key"]: next(iter(item["value"].values())) for item in spans[1]["attributes"]
+        item["key"]: next(iter(item["value"].values())) for item in spans[3]["attributes"]
+    }
+    response_attributes = {
+        item["key"]: next(iter(item["value"].values())) for item in spans[4]["attributes"]
     }
     assert spans[0]["name"] == "software_factory.pr_review"
+    assert spans[1]["name"] == "kiro-review.turn 1"
+    assert spans[2]["name"] == "chat kiro-auto request"
+    assert spans[3]["name"] == "execute_tool secure-pr-review"
+    assert spans[4]["name"] == "chat kiro-auto final"
     assert root_attributes["atlan.agent.id"] == "agent_kiro"
     assert root_attributes["daytona.sandbox.id"] == "sandbox_demo"
+    assert request_attributes["atlan.span.type"] == "llm"
+    assert request_attributes["gen_ai.request.model"] == "kiro-auto"
+    assert "Registry-governed skills" in request_attributes["input.value"]
+    assert "output.value" not in request_attributes
+    assert response_attributes["gen_ai.usage.input_tokens"] == "5291"
+    assert response_attributes["llm.cost.total"] == 0.006887822328358208
+    assert "Changes requested" in response_attributes["output.value"]
+    assert "input.value" not in response_attributes
     assert skill_attributes["atlan.skill.id"] == "skill_secure"
+    assert skill_attributes["gen_ai.tool.name"] == "secure-pr-review"
+    assert skill_attributes["gen_ai.tool.type"] == "skill"
     assert [event["attributes"][0]["value"]["stringValue"] for event in spans[0]["events"]] == [
         "read",
         "grep",
