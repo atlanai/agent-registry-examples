@@ -66,7 +66,9 @@ proposal; a human still owns the policy change and the merge.
 4. Feed `factory/fixtures/risky-order-change.diff` to the LangGraph review agent.
 5. Resolve `secure-pr-review` with its Registry fingerprint.
 6. Produce a Markdown summary and machine-readable review artifact.
-7. Submit an Atlan trace when `ATLANAI_TOKEN` is configured.
+
+This CI lane does not receive an Agent key and does not submit traces. Agent-authenticated
+telemetry belongs to the Daytona acceptance lanes; `ATLANAI_TOKEN` remains scoped to SkillSync.
 
 `Kiro PR Review in Daytona` is an independent manual acceptance lane. It downloads only the pinned
 Kiro 2.20.1 archive, verifies both archive and launcher SHA-256 values, uploads the synthetic service,

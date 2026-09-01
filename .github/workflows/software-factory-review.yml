@@ -58,14 +58,11 @@ jobs:
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
       - name: Review the proposed order-service change
-        env:
-          ATLANAI_TOKEN: ${{ secrets.ATLANAI_TOKEN }}
         run: |
           uv run python -m registry_pr_review_demo.factory_review \
             --diff factory/fixtures/risky-order-change.diff \
             --output build/factory-review/review.json \
             --summary build/factory-review/summary.md \
-            --submit-trace-if-configured \
             --github-summary
 
       - name: Upload governed review evidence
