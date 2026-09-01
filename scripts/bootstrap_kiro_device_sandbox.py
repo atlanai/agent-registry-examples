@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+from pathlib import Path
 
 from daytona import CreateSandboxFromSnapshotParams, Daytona
 
@@ -16,7 +18,7 @@ def main() -> int:
 
     sandbox = Daytona().create(
         CreateSandboxFromSnapshotParams(
-            name="software-factory-kiro-acceptance-3",
+            name="software-factory-kiro-acceptance-4",
             snapshot="software-factory-kiro-runtime-2-20-1",
             language="python",
             auto_stop_interval=30,
@@ -38,11 +40,20 @@ def main() -> int:
         ),
         timeout=180,
     )
+    project_root = Path(__file__).resolve().parents[1]
+    cli_binary = project_root / "vendor/atlanai/atlanai-linux-amd64"
+    expected_digest = "2de549a7f584f748f8e082e7c88b18a0e916ef3051f06be2aeddfefa6b13ea59"
+    if hashlib.sha256(cli_binary.read_bytes()).hexdigest() != expected_digest:
+        raise RuntimeError("Pinned Atlan CLI digest mismatch")
+    sandbox.fs.upload_file(cli_binary.read_bytes(), "/usr/local/bin/atlanai")
+    installed = sandbox.process.exec("chmod 0755 /usr/local/bin/atlanai", timeout=30)
+    if installed.exit_code != 0:
+        raise RuntimeError("Atlan CLI installation failed")
     print(
         json.dumps(
             {
                 "sandbox_id": sandbox.id,
-                "sandbox_name": "software-factory-kiro-acceptance-3",
+                "sandbox_name": "software-factory-kiro-acceptance-4",
                 "agent_secret": "kiro-pr-review-agent-key",
                 "credential_mode": "daytona-secret-placeholder",
             },

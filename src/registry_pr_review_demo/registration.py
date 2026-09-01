@@ -72,7 +72,6 @@ def build_desired_registry_state() -> DesiredRegistryState:
                 network_mode="limited",
                 allowed_hosts=(
                     "agentgateway.atlan.engineering",
-                    "releases.atlan.com",
                     "app.kiro.dev",
                     "assets.app.kiro.dev",
                     "cognito-identity.us-east-1.amazonaws.com",
