@@ -12,8 +12,8 @@
     "daytona-kiro-pr-review": "agent_environment_01m1a5cqfdfz1vh7hga5qmpx9d"
   },
   "agent_ids": {
-    "pr-review-agent": "agent_01m11he6zdf88b5z381489b3xe",
+    "pr-review-agent": "agent_01m1ejp36efnsrw6m8w20atdr3",
     "registry-skill-improver-cli": "agent_01m11hjdcmehrr4yg6jnjj8t38",
-    "kiro-pr-review-agent": "agent_01m1apcr8ve08r88tyh5pcsspr"
+    "kiro-pr-review-agent": "agent_01m1ejp2w6fy0synanm0qp4akh"
   }
 }

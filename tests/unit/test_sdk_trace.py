@@ -49,23 +49,35 @@ def test_sdk_trace_records_exact_skill_usage_without_raw_diff() -> None:
         steps=("load_skill", "inspect_diff", "decide"),
     )
 
-    with tracer.review(request, fingerprint, evaluation) as run:
+    with tracer.review(
+        request,
+        (("skill_demo", fingerprint),),
+        evaluation,
+        agent_id="agent_demo",
+        provider_id="agent_provider_demo",
+        environment_id="agent_environment_demo",
+        external_session_id="session_demo",
+        sandbox_id="sandbox_demo",
+    ) as run:
         run.complete(result)
 
     client.flush()
     client.shutdown()
     spans = exporter.get_finished_spans()
-    root = next(span for span in spans if span.name == "registry.pr_review")
+    root = next(span for span in spans if span.name == "software_factory.pr_review")
     skill = next(span for span in spans if span.name == "review.skill")
     assert root.attributes is not None
     assert root.attributes["demo.eval.case_id"] == "sql-format-interpolation"
     assert root.attributes["demo.eval.expected_decision"] == "changes_requested"
     assert root.attributes["review.decision"] == "approve"
+    assert root.attributes["atlan.agent.id"] == "agent_demo"
+    assert root.attributes["daytona.sandbox.id"] == "sandbox_demo"
     assert skill.attributes is not None
     assert skill.attributes["atlan.skill.name"] == "secure-pr-review"
     assert skill.attributes["atlan.skill.version"] == "0.1.0"
     assert skill.attributes["atlan.skill.source_digest"] == "abc123"
     assert skill.attributes["atlan.skill.skillmd_sha256"] == "def456"
     assert skill.attributes["atlan.skill.fingerprint_source"] == "registry"
+    assert skill.attributes["atlan.registry.skill.id"] == "skill_demo"
     serialized = repr([(span.name, span.attributes) for span in spans])
     assert "SELECT * FROM events" not in serialized

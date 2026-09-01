@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 import time
 import urllib.parse
 import urllib.request
 from collections.abc import Callable, Mapping, Sequence
+from pathlib import Path
 from typing import cast
+
+from registry_pr_review_demo.cli_trace import CliCommandResult, run_atlanai_cli
 
 MAX_RESPONSE_BYTES = 4_000_000
 GATEWAY_HOST = "agentgateway.atlan.engineering"
@@ -68,13 +72,15 @@ class AgentEvidenceClient:
         output_url: str,
         model_id: str | None,
         decision: str,
+        runtime: str = "kiro",
     ) -> tuple[str, str]:
+        display_runtime = "LangGraph" if runtime == "langgraph" else "Kiro"
         session = self._request(
             "POST",
             "/agent/v1/sessions",
             {
-                "name": _artifact_name("kiro-pr-review", external_session_id),
-                "display_name": "Kiro PR Review",
+                "name": _artifact_name(f"{runtime}-pr-review", external_session_id),
+                "display_name": f"{display_runtime} PR Review",
                 "description": f"Sanitized review evidence: {decision}.",
                 "workspace_id": self._workspace_id,
                 "subject_kind": "agent",
@@ -94,8 +100,8 @@ class AgentEvidenceClient:
             "POST",
             "/agent/v1/outputs",
             {
-                "name": _artifact_name("kiro-pr-review-result", external_session_id),
-                "display_name": "Kiro PR Review Result",
+                "name": _artifact_name(f"{runtime}-pr-review-result", external_session_id),
+                "display_name": f"{display_runtime} PR Review Result",
                 "description": "Sanitized GitHub Actions review artifact and trace lineage.",
                 "workspace_id": self._workspace_id,
                 "mode": "link",
@@ -168,6 +174,63 @@ class AgentEvidenceClient:
             raise RuntimeError("Atlan evidence response was not JSON") from error
         if not isinstance(payload, dict):
             raise RuntimeError("Atlan evidence response must be an object")
+        return {str(key): value for key, value in cast(dict[object, object], payload).items()}
+
+
+class CliAgentEvidenceClient(AgentEvidenceClient):
+    """Use the CLI's API-key exchange path for Agent-authenticated evidence calls."""
+
+    def __init__(
+        self,
+        *,
+        workspace_id: str,
+        runner: Callable[[Sequence[str]], CliCommandResult] = run_atlanai_cli,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
+        super().__init__(
+            api_key="cli-managed-agent-credential",
+            workspace_id=workspace_id,
+            sleep=sleep,
+        )
+        self._runner = runner
+
+    @classmethod
+    def from_environment(cls) -> CliAgentEvidenceClient:
+        if not os.environ.get("ATLANAI_TOKEN"):
+            raise RuntimeError("Agent evidence requires ATLANAI_TOKEN")
+        workspace_id = os.environ.get("ATLAN_WORKSPACE_ID")
+        if not workspace_id:
+            raise RuntimeError("Agent evidence requires ATLAN_WORKSPACE_ID")
+        return cls(workspace_id=workspace_id)
+
+    def _request(
+        self, method: str, path: str, body: Mapping[str, object] | None = None
+    ) -> dict[str, object]:
+        if method not in {"GET", "POST"} or not path.startswith("/"):
+            raise ValueError("Atlan evidence request is outside the fixed API surface")
+        arguments: list[str] = ["atlanai", "api", method.lower(), path]
+        temporary_path: Path | None = None
+        if body is not None:
+            fd, raw_path = tempfile.mkstemp(prefix="agent-evidence-", suffix=".json")
+            temporary_path = Path(raw_path)
+            os.fchmod(fd, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                json.dump(body, handle, separators=(",", ":"), sort_keys=True)
+            arguments.extend(("--input", str(temporary_path)))
+        arguments.extend(("-H", f"X-Atlan-Workspace-Id:{self._workspace_id}"))
+        try:
+            result = self._runner(tuple(arguments))
+        finally:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
+        if result.exit_code != 0:
+            raise RuntimeError("Atlan CLI evidence request failed")
+        try:
+            payload: object = json.loads(result.stdout)
+        except json.JSONDecodeError as error:
+            raise RuntimeError("Atlan CLI evidence response was not JSON") from error
+        if not isinstance(payload, dict):
+            raise RuntimeError("Atlan CLI evidence response must be an object")
         return {str(key): value for key, value in cast(dict[object, object], payload).items()}
 
 

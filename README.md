@@ -30,6 +30,7 @@ the governed review returns `changes_requested` without applying the patch.
 | [Software Factory Review](https://github.com/atlanai/software-factory-demo/actions/workflows/software-factory-review.yml) | Tests, governed review, trace submission, evidence artifact |
 | [Atlan SkillSync](https://github.com/atlanai/software-factory-demo/actions/workflows/atlan-skill-sync.yml) | Protected-branch publication from GitHub to Registry |
 | [Demo control room](docs/demo-links.md) | GitHub, Registry, trace, agent, and Daytona links in one place |
+| [Customer demo walkthrough](docs/customer-demo-walkthrough.md) | Tab order, talk track, screenshots, and live acceptance gates |
 | [Registry inventory](docs/registry-inventory.md) | Verified live IDs, traces, Outputs, and governance status |
 
 ## The factory loop
@@ -101,9 +102,9 @@ docs/                                    Architecture, API contracts, runbook, d
 .github/workflows/                       Review, SkillSync, and preflight automation
 ```
 
-## Live evidence
+## Evidence status
 
-The checked-in [Registry inventory](docs/registry-inventory.md) records the currently verified
+The checked-in [Registry inventory](docs/registry-inventory.md) records the verified historical
 workspace objects. The demo evidence includes:
 
 - Daytona sandbox `ceeffd99-d723-4d88-89bd-b1052b025bf7` running both LangGraph agents.
@@ -114,6 +115,15 @@ workspace objects. The demo evidence includes:
 
 The source diff never enters telemetry. Traces carry the evaluation ID, skill name, version,
 digests, decision, finding count, and matched rule IDs.
+
+The final customer-demo Agents created on 1 September 2026 are
+`agent_01m1ejp36efnsrw6m8w20atdr3` (LangGraph) and
+`agent_01m1ejp2w6fy0synanm0qp4akh` (Kiro). Each has three active `uses_skill` relationships.
+Current Agent-authenticated telemetry acceptance is still blocked by HTTP 503 from Registry OTLP
+ingest and Kiro device-flow dispatch under Daytona's tier-level network restriction. No trace,
+Session, Output, or Usage entry is claimed for those final identities. See the
+[customer demo walkthrough](docs/customer-demo-walkthrough.md#live-acceptance-status) before using
+the live tabs with a customer.
 
 ## Run locally
 

@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import json
 import urllib.request
+from collections.abc import Sequence
+from pathlib import Path
 from typing import cast
 
 import pytest
 
-from registry_pr_review_demo.agent_evidence import AgentEvidenceClient
+from registry_pr_review_demo.agent_evidence import AgentEvidenceClient, CliAgentEvidenceClient
+from registry_pr_review_demo.cli_trace import CliCommandResult
 
 
 def test_agent_evidence_creates_lineage_and_verifies_both_trace_facades() -> None:
@@ -115,3 +118,44 @@ def test_agent_evidence_configuration_and_response_validation(
         client._request(  # pyright: ignore[reportPrivateUsage]
             "DELETE", "/agent/v1/sessions/session_demo"
         )
+
+
+def test_cli_agent_evidence_uses_api_key_exchange_path(tmp_path: Path) -> None:
+    observed: list[tuple[str, ...]] = []
+
+    def runner(args: Sequence[str]) -> CliCommandResult:
+        observed.append(tuple(args))
+        if "--input" in args:
+            payload = json.loads(Path(args[args.index("--input") + 1]).read_text())
+            assert payload["subject_id"] == "agent_demo"
+        return CliCommandResult(0, '{"id":"session_demo"}', "")
+
+    client = CliAgentEvidenceClient(workspace_id="workspace_demo", runner=runner)
+    response = client._request(  # pyright: ignore[reportPrivateUsage]
+        "POST", "/agent/v1/sessions", {"subject_id": "agent_demo"}
+    )
+    assert response["id"] == "session_demo"
+    assert observed[0][:4] == ("atlanai", "api", "post", "/agent/v1/sessions")
+
+
+def test_cli_agent_evidence_fails_closed_on_missing_auth_and_bad_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("ATLANAI_TOKEN", raising=False)
+    monkeypatch.delenv("ATLAN_WORKSPACE_ID", raising=False)
+    with pytest.raises(RuntimeError, match="requires ATLANAI_TOKEN"):
+        CliAgentEvidenceClient.from_environment()
+
+    failed = CliAgentEvidenceClient(
+        workspace_id="workspace_demo",
+        runner=lambda _args: CliCommandResult(1, "", "forbidden"),
+    )
+    with pytest.raises(RuntimeError, match="request failed"):
+        failed._request("GET", "/agent/v1/sessions/demo")  # pyright: ignore[reportPrivateUsage]
+
+    invalid = CliAgentEvidenceClient(
+        workspace_id="workspace_demo",
+        runner=lambda _args: CliCommandResult(0, "not-json", ""),
+    )
+    with pytest.raises(RuntimeError, match="was not JSON"):
+        invalid._request("GET", "/agent/v1/sessions/demo")  # pyright: ignore[reportPrivateUsage]

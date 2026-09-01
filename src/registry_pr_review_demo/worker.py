@@ -10,13 +10,16 @@ from typing import Protocol, cast
 import atlan_ai
 from atlan_ai.client import AtlanAI
 from atlan_ai.langchain import CallbackHandler
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from registry_pr_review_demo.agent_evidence import AgentEvidenceClient
+from registry_pr_review_demo.agent_evidence import CliAgentEvidenceClient
 from registry_pr_review_demo.cli_trace import (
     CliTraceReceipt,
     CliTraceSubmitter,
     KiroCliTraceRecord,
     KiroCliTraceSubmitter,
+    OtlpPayloadSubmitter,
+    build_sdk_otlp_payload,
 )
 from registry_pr_review_demo.graph import ReviewAgent
 from registry_pr_review_demo.improver import ImprovementAgent, TraceReader, TraceSubmitter
@@ -81,7 +84,37 @@ def run_sdk_job(raw_payload: Mapping[str, object], *, client: AtlanAI) -> dict[s
         knowledge=EmbeddedKnowledge(documents),
     )
     tracer = SdkReviewTracer(client)
-    with tracer.review(request, fingerprint, evaluation) as trace_run:
+    configured: list[tuple[str, SkillFingerprint]] = []
+    raw_skills = raw_payload.get("skills")
+    if raw_skills is None:
+        configured.append((package.id, fingerprint))
+    else:
+        for raw in _sequence(raw_skills, "skills"):
+            skill = _mapping(raw, "skill")
+            configured.append(
+                (
+                    _string(skill, "id"),
+                    SkillFingerprint(
+                        name=_string(skill, "name"),
+                        semantic_version=_string(skill, "semantic_version"),
+                        registry_version=_integer(skill, "version"),
+                        source_digest=_string(skill, "source_digest"),
+                        skillmd_sha256=_string(skill, "skillmd_sha256"),
+                    ),
+                )
+            )
+    evidence = _mapping(raw_payload.get("agent_evidence"), "agent_evidence")
+    attributes = _mapping(raw_payload.get("attributes", {}), "attributes")
+    with tracer.review(
+        request,
+        configured,
+        evaluation,
+        agent_id=_string(evidence, "agent_id"),
+        provider_id=_string(evidence, "provider_id"),
+        environment_id=_string(evidence, "environment_id"),
+        external_session_id=_string(evidence, "external_session_id"),
+        sandbox_id=_string(attributes, "daytona.sandbox.id"),
+    ) as trace_run:
         result = agent.review(request, reference, callbacks=[CallbackHandler()])
         trace_run.complete(result)
     payload = _result_dict(result)
@@ -293,7 +326,7 @@ def main() -> int:
         attributes = _mapping(typed_payload.get("attributes", {}), "attributes")
         result_model = result.get("model")
         model_id = result_model if isinstance(result_model, str) else None
-        session_id, output_id = AgentEvidenceClient.from_environment().record_and_verify(
+        session_id, output_id = CliAgentEvidenceClient.from_environment().record_and_verify(
             agent_id=_string(typed_payload, "agent_id"),
             provider_id=_string(typed_payload, "provider_id"),
             environment_id=_string(typed_payload, "environment_id"),
@@ -311,15 +344,45 @@ def main() -> int:
         result["session_id"] = session_id
         result["output_id"] = output_id
     elif typed_payload.get("trace_mode") == "sdk":
+        exporter = InMemorySpanExporter()
         client = atlan_ai.init(
             service_name="registry-pr-review-sdk",
             trace_content=False,
+            span_exporter=exporter,
         )
         try:
             result = run_sdk_job(typed_payload, client=client)
             client.flush()
         finally:
             client.shutdown()
+        receipt = OtlpPayloadSubmitter(workspace_id=DATA_WORKSPACE_ID).submit(
+            build_sdk_otlp_payload(exporter.get_finished_spans())
+        )
+        if receipt.trace_id != _string(result, "trace_id"):
+            raise RuntimeError("SDK trace transport returned a different trace id")
+        evidence = _mapping(typed_payload.get("agent_evidence"), "agent_evidence")
+        attributes = _mapping(typed_payload.get("attributes", {}), "attributes")
+        raw_skills = typed_payload.get("skills")
+        skill_ids = (
+            [_string(_mapping(raw, "skill"), "id") for raw in _sequence(raw_skills, "skills")]
+            if raw_skills is not None
+            else [_string(_mapping(typed_payload.get("skill"), "skill"), "id")]
+        )
+        session_id, output_id = CliAgentEvidenceClient.from_environment().record_and_verify(
+            agent_id=_string(evidence, "agent_id"),
+            provider_id=_string(evidence, "provider_id"),
+            environment_id=_string(evidence, "environment_id"),
+            external_session_id=_string(evidence, "external_session_id"),
+            sandbox_id=_string(attributes, "daytona.sandbox.id"),
+            trace_id=_string(result, "trace_id"),
+            skill_ids=skill_ids,
+            output_url=_string(evidence, "output_url"),
+            model_id=None,
+            decision=_string(result, "decision"),
+            runtime="langgraph",
+        )
+        result["session_id"] = session_id
+        result["output_id"] = output_id
     else:
         result = run_job(typed_payload)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")

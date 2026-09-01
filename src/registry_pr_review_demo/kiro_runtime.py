@@ -197,6 +197,7 @@ class KiroDaytonaRuntime:
         secrets: Mapping[str, str],
         allowed_domains: tuple[str, ...],
         workspace_id: str,
+        raw_agent_key: str | None = None,
         client_factory: Callable[[], DaytonaClient] | None = None,
     ) -> None:
         self._kiro_binary = kiro_binary
@@ -207,8 +208,14 @@ class KiroDaytonaRuntime:
         self._secrets = dict(secrets)
         self._allowed_domains = allowed_domains
         self._workspace_id = workspace_id
+        self._raw_agent_key = raw_agent_key
         self._client_factory = client_factory or cast(Callable[[], DaytonaClient], Daytona)
-        if set(self._secrets) != {"ATLAN_API_KEY", "ATLANAI_TOKEN", "KIRO_API_KEY"}:
+        expected_secrets = (
+            {"KIRO_API_KEY"}
+            if self._raw_agent_key
+            else {"ATLAN_API_KEY", "ATLANAI_TOKEN", "KIRO_API_KEY"}
+        )
+        if set(self._secrets) != expected_secrets:
             raise ValueError("Kiro Daytona runtime requires REST, CLI, and Kiro secret mappings")
         if not self._workspace_id.startswith("workspace_"):
             raise ValueError("Kiro Daytona runtime requires a Registry workspace id")
@@ -244,6 +251,15 @@ class KiroDaytonaRuntime:
                 f"python -m pip install {wheel_remote}",
             )
         )
+        env_vars = {
+            "ATLAN_BASE_URL": "https://agentgateway.atlan.engineering",
+            "ATLANAI_GATEWAY_URL": "https://agentgateway.atlan.engineering",
+            "ATLAN_TRACE_CONTENT": "false",
+            "ATLAN_WORKSPACE_ID": self._workspace_id,
+        }
+        if self._raw_agent_key:
+            env_vars["ATLAN_API_KEY"] = self._raw_agent_key
+            env_vars["ATLANAI_TOKEN"] = self._raw_agent_key
         params = CreateSandboxFromImageParams(
             image=image,
             language="python",
@@ -253,12 +269,7 @@ class KiroDaytonaRuntime:
             domain_allow_list=",".join(self._allowed_domains),
             secrets=self._secrets,
             labels={"purpose": "software-factory-kiro-review"},
-            env_vars={
-                "ATLAN_BASE_URL": "https://agentgateway.atlan.engineering",
-                "ATLANAI_GATEWAY_URL": "https://agentgateway.atlan.engineering",
-                "ATLAN_TRACE_CONTENT": "false",
-                "ATLAN_WORKSPACE_ID": self._workspace_id,
-            },
+            env_vars=env_vars,
         )
         sandbox = client.create(params)
         try:

@@ -3,16 +3,22 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 from pathlib import Path
+from types import SimpleNamespace
 from typing import cast
 
+import pytest
+
+import registry_pr_review_demo.cli_trace as cli_trace
 from registry_pr_review_demo.cli_trace import (
     CliCommandResult,
     CliTraceRecord,
     CliTraceSubmitter,
     KiroCliTraceRecord,
     KiroCliTraceSubmitter,
+    OtlpPayloadSubmitter,
     build_kiro_otlp_payload,
     build_otlp_payload,
+    build_sdk_otlp_payload,
 )
 from registry_pr_review_demo.models import EvaluationCase, ReviewDecision, SkillFingerprint
 
@@ -131,3 +137,57 @@ def test_kiro_cli_trace_uses_rest_with_agent_skills_and_sanitized_tools(
     assert args[:4] == ("atlanai", "api", "post", "/otel/v1/traces")
     assert receipt.trace_id
     assert list(tmp_path.iterdir()) == []
+
+
+def test_sdk_payload_keeps_governed_metadata_and_drops_raw_content(tmp_path: Path) -> None:
+    context = SimpleNamespace(trace_id=int("a" * 32, 16), span_id=int("b" * 16, 16))
+    parent = SimpleNamespace(span_id=int("c" * 16, 16))
+    spans = [
+        SimpleNamespace(
+            context=context,
+            parent=parent,
+            name="review.skill",
+            start_time=1_000,
+            end_time=2_000,
+            attributes={
+                "atlan.skill.id": "skill_demo",
+                "review.finding_count": 1,
+                "review.raw_diff": "must-not-ship",
+                "untrusted.input": "SELECT secret",
+            },
+        )
+    ]
+    payload = build_sdk_otlp_payload(spans)
+    serialized = json.dumps(payload)
+    assert "skill_demo" in serialized
+    assert "must-not-ship" not in serialized
+    assert "SELECT secret" not in serialized
+
+    calls = 0
+
+    def runner(_args: Sequence[str]) -> CliCommandResult:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return CliCommandResult(1, "", "HTTP 503 service is temporarily unavailable")
+        return CliCommandResult(0, '{"partialSuccess":{}}', "")
+
+    receipt = OtlpPayloadSubmitter(
+        workspace_id="workspace_data", runner=runner, temp_dir=tmp_path
+    ).submit(payload)
+    assert receipt.trace_id == "a" * 32
+    assert calls == 2
+
+
+def test_sdk_otlp_value_validation() -> None:
+    assert cli_trace._otlp_value(True) == {"boolValue": True}  # pyright: ignore[reportPrivateUsage]
+    assert cli_trace._otlp_value(1.5) == {"doubleValue": 1.5}  # pyright: ignore[reportPrivateUsage]
+    assert cli_trace._otlp_value("value") == {  # pyright: ignore[reportPrivateUsage]
+        "stringValue": "value"
+    }
+    assert cli_trace._otlp_value(["x", 2, None]) == {  # pyright: ignore[reportPrivateUsage]
+        "arrayValue": {"values": [{"stringValue": "x"}, {"intValue": "2"}]}
+    }
+    assert cli_trace._otlp_value(object()) is None  # pyright: ignore[reportPrivateUsage]
+    with pytest.raises(ValueError, match="requires finished spans"):
+        build_sdk_otlp_payload([])

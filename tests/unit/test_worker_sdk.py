@@ -37,6 +37,14 @@ def test_worker_sdk_mode_emits_graph_result_and_skill_trace() -> None:
             "id": "sql-format-interpolation",
             "expected_decision": "changes_requested",
         },
+        "agent_evidence": {
+            "agent_id": "agent_demo",
+            "provider_id": "agent_provider_demo",
+            "environment_id": "agent_environment_demo",
+            "external_session_id": "session_demo",
+            "output_url": "https://example.invalid/result",
+        },
+        "attributes": {"daytona.sandbox.id": "sandbox_demo"},
     }
 
     result = run_sdk_job(payload, client=client)
@@ -46,4 +54,4 @@ def test_worker_sdk_mode_emits_graph_result_and_skill_trace() -> None:
     assert result["decision"] == "approve"
     assert isinstance(result["trace_id"], str)
     spans = exporter.get_finished_spans()
-    assert {span.name for span in spans} >= {"registry.pr_review", "review.skill"}
+    assert {span.name for span in spans} >= {"software_factory.pr_review", "review.skill"}

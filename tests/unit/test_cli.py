@@ -201,6 +201,115 @@ def test_run_wires_registry_daytona_knowledge_and_otlp(
     )
 
 
+def test_run_sdk_wires_final_agent_and_three_skill_fingerprints(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    observed: dict[str, object] = {}
+
+    class LiveRuntime:
+        def __init__(self, **kwargs: object) -> None:
+            observed.update(kwargs)
+
+    class LiveController:
+        def __init__(self, **components: object) -> None:
+            assert set(components) == {"registry", "knowledge", "runtime", "traces"}
+
+        def run(
+            self,
+            request: object,
+            reference: object,
+            *,
+            evaluation: object,
+            trace_mode: str,
+        ) -> dict[str, object]:
+            assert cast(ReviewRequest, request).repository == "example/repo"
+            assert cast(SkillArtifactRef, reference).id.startswith("skill_")
+            assert evaluation is not None and trace_mode == "sdk"
+            return {"decision": "changes_requested", "findings": [{"rule_id": "demo"}]}
+
+    monkeypatch.setenv("DAYTONA_API_KEY", "daytona-test-token")
+    monkeypatch.setenv("ATLAN_RUNTIME_AGENT_KEY", "agent-test-token")
+    monkeypatch.setattr(cli, "ReviewController", LiveController)
+    monkeypatch.setattr(cli, "DaytonaRuntime", LiveRuntime)
+
+    def live_knowledge(_root: Path) -> object:
+        return object()
+
+    monkeypatch.setattr(cli, "DirectoryKnowledgeSource", live_knowledge)
+    monkeypatch.setattr(cli, "build_worker_archive", fake_build_worker_archive)
+    request = tmp_path / "request.json"
+    request.write_text(
+        json.dumps(
+            {
+                "repository": "example/repo",
+                "pull_request_number": 42,
+                "head_sha": "a" * 40,
+                "diff": "+eval(payload)",
+            }
+        ),
+        encoding="utf-8",
+    )
+    state = tmp_path / "state.json"
+    state.write_text(
+        json.dumps(
+            {
+                "provider_id": "agent_provider_demo",
+                "environment_ids": {"daytona-sdk-pr-review": "agent_environment_demo"},
+                "agent_ids": {"pr-review-agent": "agent_demo"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    diff = tmp_path / "fixture.diff"
+    diff.write_text("+eval(payload)\n", encoding="utf-8")
+    evaluations = tmp_path / "evaluations.json"
+    evaluations.write_text(
+        json.dumps(
+            {
+                "cases": [
+                    {
+                        "id": "risky-order-change",
+                        "expected_decision": "changes_requested",
+                        "diff": str(diff),
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "result.json"
+
+    exit_code = main(
+        [
+            "run-sdk",
+            "--request",
+            str(request),
+            "--skill-reference",
+            "registry/skill-references.json",
+            "--references",
+            "registry/skill-references.json",
+            "--state",
+            str(state),
+            "--knowledge-root",
+            "knowledge",
+            "--evaluations",
+            str(evaluations),
+            "--case-id",
+            "risky-order-change",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 0
+    assert observed["secrets"] is None
+    env_vars = cast(dict[str, str], observed["env_vars"])
+    assert env_vars["ATLANAI_TOKEN"] == "agent-test-token"
+    overrides = cast(dict[str, object], observed["payload_overrides"])
+    assert len(cast(list[object], overrides["skills"])) == 3
+    assert cast(dict[str, object], overrides["agent_evidence"])["agent_id"] == "agent_demo"
+
+
 def test_skill_publish_failure_is_reported(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     def fail(_: Sequence[str]) -> CliCommandResult:
         return CliCommandResult(1, "", "validation failed")

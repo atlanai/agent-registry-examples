@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Generator
+from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 
@@ -18,7 +18,7 @@ from registry_pr_review_demo.models import (
 @dataclass(slots=True)
 class SdkTraceRun:
     root: atlan_ai.AtlanSpan
-    skill: atlan_ai.AtlanSpan
+    skills: tuple[atlan_ai.AtlanSpan, ...]
     trace_id: str
 
     def complete(self, result: ReviewResult) -> None:
@@ -42,23 +42,35 @@ class SdkReviewTracer:
     def review(
         self,
         request: ReviewRequest,
-        fingerprint: SkillFingerprint,
+        fingerprints: Sequence[tuple[str, SkillFingerprint]],
         evaluation: EvaluationCase,
+        *,
+        agent_id: str,
+        provider_id: str,
+        environment_id: str,
+        external_session_id: str,
+        sandbox_id: str,
     ) -> Generator[SdkTraceRun, None, None]:
-        session_id = f"pr-{request.pull_request_number}-{request.head_sha[:12]}"
-        trace_id = atlan_ai.create_trace_id(seed=session_id)
+        if not fingerprints:
+            raise ValueError("SDK review requires at least one verified skill")
+        trace_id = atlan_ai.create_trace_id(seed=external_session_id)
         with (
             atlan_ai.propagate_attributes(
-                session_id=session_id,
+                session_id=external_session_id,
                 tags=["registry-pr-review", "daytona"],
                 trace_name=f"PR review: {evaluation.id}",
             ),
             self._client.start_as_current_span(
-                "registry.pr_review",
+                "software_factory.pr_review",
                 as_type="task",
                 trace_context={"trace_id": trace_id},
             ) as root,
         ):
+            root.otel_span.set_attribute("atlan.agent.id", agent_id)
+            root.otel_span.set_attribute("atlan.agent.provider_id", provider_id)
+            root.otel_span.set_attribute("atlan.agent.environment_id", environment_id)
+            root.otel_span.set_attribute("agent.runtime", "langgraph")
+            root.otel_span.set_attribute("daytona.sandbox.id", sandbox_id)
             root.otel_span.set_attribute("github.repository", request.repository)
             root.otel_span.set_attribute("github.pull_request.number", request.pull_request_number)
             root.otel_span.set_attribute("git.commit.sha", request.head_sha)
@@ -66,17 +78,24 @@ class SdkReviewTracer:
             root.otel_span.set_attribute(
                 "demo.eval.expected_decision", evaluation.expected_decision.value
             )
-            with self._client.start_as_current_span("review.skill", as_type="tool") as skill:
-                skill.otel_span.set_attribute("atlan.skill.name", fingerprint.name)
-                skill.otel_span.set_attribute("atlan.skill.version", fingerprint.semantic_version)
-                skill.otel_span.set_attribute(
-                    "atlan.registry.skill.version_ordinal", fingerprint.registry_version
-                )
-                skill.otel_span.set_attribute(
-                    "atlan.skill.source_digest", fingerprint.source_digest
-                )
-                skill.otel_span.set_attribute(
-                    "atlan.skill.skillmd_sha256", fingerprint.skillmd_sha256
-                )
-                skill.otel_span.set_attribute("atlan.skill.fingerprint_source", "registry")
-                yield SdkTraceRun(root=root, skill=skill, trace_id=trace_id)
+            spans: list[atlan_ai.AtlanSpan] = []
+            for skill_id, fingerprint in fingerprints:
+                with self._client.start_as_current_span("review.skill", as_type="tool") as skill:
+                    skill.otel_span.set_attribute("atlan.registry.skill.id", skill_id)
+                    skill.otel_span.set_attribute("atlan.skill.id", skill_id)
+                    skill.otel_span.set_attribute("atlan.skill.name", fingerprint.name)
+                    skill.otel_span.set_attribute(
+                        "atlan.skill.version", fingerprint.semantic_version
+                    )
+                    skill.otel_span.set_attribute(
+                        "atlan.registry.skill.version_ordinal", fingerprint.registry_version
+                    )
+                    skill.otel_span.set_attribute(
+                        "atlan.skill.source_digest", fingerprint.source_digest
+                    )
+                    skill.otel_span.set_attribute(
+                        "atlan.skill.skillmd_sha256", fingerprint.skillmd_sha256
+                    )
+                    skill.otel_span.set_attribute("atlan.skill.fingerprint_source", "registry")
+                    spans.append(skill)
+            yield SdkTraceRun(root=root, skills=tuple(spans), trace_id=trace_id)

@@ -17,6 +17,8 @@ from registry_pr_review_demo.kiro_runtime import KiroDaytonaRuntime
 from registry_pr_review_demo.knowledge import DirectoryKnowledgeSource
 from registry_pr_review_demo.models import (
     ReviewRequest,
+    ReviewRule,
+    Severity,
     SkillArtifactRef,
     SkillPackage,
 )
@@ -93,6 +95,8 @@ def _parser() -> argparse.ArgumentParser:
     run_sdk.add_argument("--output", required=True, type=Path)
     run_sdk.add_argument("--case-id", default="sql-format-interpolation")
     run_sdk.add_argument("--evaluations", type=Path, default=Path("examples/evaluations.json"))
+    run_sdk.add_argument("--references", type=Path, default=Path("registry/skill-references.json"))
+    run_sdk.add_argument("--state", type=Path, default=Path("registry/runtime-state.json"))
 
     run_kiro = subparsers.add_parser(
         "run-kiro", help="Run the independent Kiro PR reviewer inside Daytona"
@@ -237,37 +241,136 @@ class _FixedSkillRegistry(SkillRegistry):
 def _run_sdk(args: argparse.Namespace) -> int:
     _required_env("DAYTONA_API_KEY")
     request = _review_request(_read_json(cast(Path, args.request)))
-    reference = _skill_reference(_read_json(cast(Path, args.skill_reference)))
-    loaded = AtlanCliSkillLoader().load(reference)
     evaluation = load_evaluation(cast(Path, args.evaluations), cast(str, args.case_id))
     package_dir = Path(registry_pr_review_demo.__file__).parent
     project_root = package_dir.parents[1]
+    if not hasattr(args, "references"):
+        reference = _skill_reference(_read_json(cast(Path, args.skill_reference)))
+        loaded = AtlanCliSkillLoader().load(reference)
+        controller = ReviewController(
+            registry=_FixedSkillRegistry(loaded.reference, loaded.package),
+            knowledge=DirectoryKnowledgeSource(cast(Path, args.knowledge_root)),
+            runtime=DaytonaRuntime(worker_archive=build_worker_archive(package_dir)),
+            traces=_NoopTraceRecorder(),
+        )
+        result = controller.run(request, loaded.reference, evaluation=evaluation, trace_mode="sdk")
+        _write_json(cast(Path, args.output), result)
+        return 0
+    references = _read_json(cast(Path, args.references))
+    skills = [_verified_skill(name, references, project_root) for name in KIRO_REVIEW_SKILLS]
+    primary = skills[0]
+    reference = SkillArtifactRef(
+        id=cast(str, primary["id"]),
+        version=cast(int, primary["version"]),
+        source_digest=cast(str, primary["source_digest"]),
+        semantic_version=cast(str, primary["semantic_version"]),
+        skillmd_sha256=cast(str, primary["skillmd_sha256"]),
+    )
+    package = _local_skill_package(project_root, reference)
+    state = _read_json(cast(Path, args.state))
+    agent_ids = _mapping_value(state.get("agent_ids"), "agent_ids")
+    agent_id = agent_ids.get("pr-review-agent")
+    provider_id = state.get("provider_id")
+    environment_ids = _mapping_value(state.get("environment_ids"), "environment_ids")
+    environment_id = environment_ids.get("daytona-sdk-pr-review")
+    if not isinstance(agent_id, str) or not agent_id.startswith("agent_"):
+        raise RuntimeError("Registry state is missing the LangGraph Agent identity")
+    if not isinstance(provider_id, str) or not provider_id.startswith("agent_provider_"):
+        raise RuntimeError("Registry state is missing the Daytona provider identity")
+    if not isinstance(environment_id, str) or not environment_id.startswith("agent_environment_"):
+        raise RuntimeError("Registry state is missing the LangGraph environment identity")
+    run_id = os.environ.get("GITHUB_RUN_ID", "local")
+    commit_sha = os.environ.get("GITHUB_SHA", request.head_sha)
+    repository = os.environ.get("GITHUB_REPOSITORY", request.repository)
+    output_url = (
+        f"https://github.com/{repository}/actions/runs/{run_id}"
+        if run_id != "local"
+        else f"https://github.com/{repository}/commit/{commit_sha}"
+    )
     sdk_wheel = project_root / "vendor/atlan-ai/atlan_ai-0.1.0-py3-none-any.whl"
     secret_name = os.environ.get("DAYTONA_SDK_AGENT_SECRET", "pr-review-agent-key")
+    runtime_agent_key = os.environ.get("ATLAN_RUNTIME_AGENT_KEY")
+    runtime_env_vars = {
+        "ATLAN_WORKSPACE_ID": DATA_WORKSPACE_ID,
+        "ATLAN_BASE_URL": "https://agentgateway.atlan.engineering",
+        "ATLANAI_GATEWAY_URL": "https://agentgateway.atlan.engineering",
+        "ATLAN_TRACE_CONTENT": "false",
+    }
+    if runtime_agent_key:
+        runtime_env_vars["ATLAN_API_KEY"] = runtime_agent_key
+        runtime_env_vars["ATLANAI_TOKEN"] = runtime_agent_key
     controller = ReviewController(
-        registry=_FixedSkillRegistry(loaded.reference, loaded.package),
+        registry=_FixedSkillRegistry(reference, package),
         knowledge=DirectoryKnowledgeSource(cast(Path, args.knowledge_root)),
         runtime=DaytonaRuntime(
             worker_archive=build_worker_archive(package_dir),
             sdk_wheel=sdk_wheel,
+            cli_binary=project_root / "vendor/atlanai/atlanai-linux-amd64",
             allowed_domains=("agentgateway.atlan.engineering",),
-            secrets={"ATLAN_API_KEY": secret_name},
-            env_vars={
-                "ATLAN_WORKSPACE_ID": DATA_WORKSPACE_ID,
-                "ATLAN_BASE_URL": "https://agentgateway.atlan.engineering",
-                "ATLAN_TRACE_CONTENT": "false",
+            secrets=(
+                None
+                if runtime_agent_key
+                else {"ATLAN_API_KEY": secret_name, "ATLANAI_TOKEN": secret_name}
+            ),
+            env_vars=runtime_env_vars,
+            payload_overrides={
+                "skills": skills,
+                "agent_evidence": {
+                    "agent_id": agent_id,
+                    "provider_id": provider_id,
+                    "environment_id": environment_id,
+                    "external_session_id": f"github-{run_id}-langgraph-review",
+                    "output_url": output_url,
+                },
+                "attributes": {
+                    "github.repository": repository,
+                    "github.run_id": run_id,
+                    "git.commit.sha": commit_sha,
+                    "review.case_id": cast(str, args.case_id),
+                },
             },
         ),
         traces=_NoopTraceRecorder(),
     )
     result = controller.run(
         request,
-        loaded.reference,
+        reference,
         evaluation=evaluation,
         trace_mode="sdk",
     )
     _write_json(cast(Path, args.output), result)
     return 0
+
+
+def _local_skill_package(project_root: Path, reference: SkillArtifactRef) -> SkillPackage:
+    raw = _read_json(project_root / "skills/secure-pr-review/rules.json")
+    raw_rules = raw.get("rules")
+    if not isinstance(raw_rules, list):
+        raise RuntimeError("secure-pr-review rules are missing")
+    rules: list[ReviewRule] = []
+    for item in cast(list[object], raw_rules):
+        rule = _mapping_value(item, "review rule")
+        knowledge_ids = rule.get("knowledge_ids", [])
+        if not isinstance(knowledge_ids, list) or not all(
+            isinstance(value, str) for value in cast(list[object], knowledge_ids)
+        ):
+            raise RuntimeError("review rule knowledge ids are invalid")
+        rules.append(
+            ReviewRule(
+                id=cast(str, rule["id"]),
+                pattern=cast(str, rule["pattern"]),
+                severity=Severity(cast(str, rule["severity"])),
+                message=cast(str, rule["message"]),
+                knowledge_ids=tuple(cast(list[str], knowledge_ids)),
+            )
+        )
+    return SkillPackage(
+        id=reference.id,
+        version=reference.version,
+        name="secure-pr-review",
+        rules=tuple(rules),
+        source_digest=reference.source_digest,
+    )
 
 
 KIRO_REVIEW_SKILLS = (
@@ -357,19 +460,25 @@ def _run_kiro(args: argparse.Namespace) -> int:
             "review.case_id": cast(str, args.case_id),
         },
     }
+    runtime_agent_key = os.environ.get("ATLAN_RUNTIME_AGENT_KEY")
+    runtime_secrets = {"KIRO_API_KEY": "kiro-api-key"}
+    if not runtime_agent_key:
+        runtime_secrets.update(
+            {
+                "ATLAN_API_KEY": "kiro-pr-review-agent-key",
+                "ATLANAI_TOKEN": "kiro-pr-review-agent-key",
+            }
+        )
     runtime = KiroDaytonaRuntime(
         kiro_binary=cast(Path, args.kiro_binary),
         cli_binary=project_root / "vendor/atlanai/atlanai-linux-amd64",
         worker_archive=build_worker_archive(Path(registry_pr_review_demo.__file__).parent),
         sdk_wheel=project_root / "vendor/atlan-ai/atlan_ai-0.1.0-py3-none-any.whl",
         workspace_files=workspace_files,
-        secrets={
-            "ATLAN_API_KEY": "kiro-pr-review-agent-key",
-            "ATLANAI_TOKEN": "kiro-pr-review-agent-key",
-            "KIRO_API_KEY": "kiro-api-key",
-        },
+        secrets=runtime_secrets,
         allowed_domains=KIRO_RUNTIME_DOMAINS,
         workspace_id=DATA_WORKSPACE_ID,
+        raw_agent_key=runtime_agent_key,
     )
     result = runtime.run(trace_payload)
     _write_json(cast(Path, args.output), result)
