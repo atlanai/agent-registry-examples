@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import cast
@@ -441,13 +442,19 @@ def _run_kiro(args: argparse.Namespace) -> int:
         contract, separators=(",", ":"), sort_keys=True
     ).encode()
     run_id = os.environ.get("GITHUB_RUN_ID", "local")
-    commit_sha = os.environ.get("GITHUB_SHA", "0" * 40)
+    commit_sha = os.environ.get("SOFTWARE_FACTORY_HEAD_SHA", os.environ.get("GITHUB_SHA", "0" * 40))
+    if not re.fullmatch(r"[a-f0-9]{40}", commit_sha):
+        raise RuntimeError("PR head SHA must be lowercase hexadecimal")
+    pull_request_number = os.environ.get("SOFTWARE_FACTORY_PR_NUMBER", "local")
+    if pull_request_number != "local" and not re.fullmatch(r"[1-9][0-9]*", pull_request_number):
+        raise RuntimeError("pull request number must be positive")
     repository = os.environ.get("GITHUB_REPOSITORY", "atlanai/software-factory-demo")
+    session_suffix = f"pr-{pull_request_number}-" if pull_request_number != "local" else ""
     trace_payload: dict[str, object] = {
         "agent_id": agent_id,
         "provider_id": provider_id,
         "environment_id": environment_id,
-        "session_id": f"github-{run_id}-kiro-review",
+        "session_id": f"github-{run_id}-{session_suffix}kiro-review",
         "output_url": (
             f"https://github.com/{repository}"
             + (f"/actions/runs/{run_id}" if run_id != "local" else "")
@@ -456,6 +463,7 @@ def _run_kiro(args: argparse.Namespace) -> int:
         "attributes": {
             "github.repository": repository,
             "github.run_id": run_id,
+            "github.pull_request.number": pull_request_number,
             "git.commit.sha": commit_sha,
             "review.case_id": cast(str, args.case_id),
         },

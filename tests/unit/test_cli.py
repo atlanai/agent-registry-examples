@@ -530,6 +530,9 @@ def test_run_kiro_packages_shared_skills_and_agent_identity(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("DAYTONA_API_KEY", "daytona-test")
+    monkeypatch.setenv("GITHUB_RUN_ID", "987")
+    monkeypatch.setenv("SOFTWARE_FACTORY_PR_NUMBER", "42")
+    monkeypatch.setenv("SOFTWARE_FACTORY_HEAD_SHA", "b" * 40)
     project_root = Path(cli.registry_pr_review_demo.__file__).parent.parents[1]
     references: dict[str, object] = {}
     for index, name in enumerate(cli.KIRO_REVIEW_SKILLS, start=1):
@@ -601,4 +604,8 @@ def test_run_kiro_packages_shared_skills_and_agent_identity(
     )
     payload = cast(dict[str, object], captured["payload"])
     assert payload["agent_id"] == "agent_kiro"
+    assert payload["session_id"] == "github-987-pr-42-kiro-review"
     assert len(cast(list[object], payload["skills"])) == 3
+    attributes = cast(dict[str, str], payload["attributes"])
+    assert attributes["github.pull_request.number"] == "42"
+    assert attributes["git.commit.sha"] == "b" * 40

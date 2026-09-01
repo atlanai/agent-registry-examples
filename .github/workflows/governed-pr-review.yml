@@ -1,0 +1,152 @@
+name: Governed PR Review in Daytona
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "software/order-service/**"
+      - "agents/**"
+      - "skills/**"
+      - "factory/**"
+      - ".kiro/**"
+      - "src/**"
+      - "registry/**"
+      - "vendor/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/governed-pr-review.yml"
+
+permissions: {}
+
+concurrency:
+  group: governed-pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  same-repository-guard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Reject fork-origin authenticated execution
+        run: |
+          set -euo pipefail
+          if [[ "$HEAD_REPOSITORY" != "$GITHUB_REPOSITORY" ]]; then
+            echo "Authenticated Daytona review is available only to branches in this repository."
+            exit 1
+          fi
+          if [[ ! "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Pull-request head SHA is invalid."
+            exit 1
+          fi
+
+  review:
+    needs: same-repository-guard
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Check out the exact pull-request head
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          version: "0.9.25"
+          enable-cache: true
+
+      - name: Install the locked factory environment
+        run: uv sync --locked
+
+      - name: Test the order-service change
+        run: uv run python -m unittest discover software/order-service/tests
+
+      - name: Build the bounded pull-request diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/pr-review
+          git diff --no-ext-diff --unified=80 "$BASE_SHA...$HEAD_SHA" -- software/order-service > build/pr-review/change.diff
+          test -s build/pr-review/change.diff
+          sha256sum build/pr-review/change.diff > build/pr-review/input.sha256
+
+      - name: Verify and stage pinned Kiro CLI
+        run: uv run python scripts/fetch_kiro.py
+
+      - name: Run Agent-authenticated Kiro review in ephemeral Daytona
+        id: kiro
+        env:
+          DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
+          SOFTWARE_FACTORY_PR_NUMBER: ${{ github.event.pull_request.number }}
+          SOFTWARE_FACTORY_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          uv run registry-pr-review run-kiro \
+            --diff build/pr-review/change.diff \
+            --references registry/skill-references.json \
+            --state registry/runtime-state.json \
+            --kiro-binary work/kiro/kiro-cli \
+            --output build/pr-review/result.json \
+            --case-id pull-request-${{ github.event.pull_request.number }}
+
+      - name: Render sanitized review evidence
+        if: success()
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          uv run python -m registry_pr_review_demo.pr_comment \
+            --result build/pr-review/result.json \
+            --pr-number "$PR_NUMBER" \
+            --head-sha "$HEAD_SHA" \
+            --run-id "$RUN_ID" \
+            --run-url "$RUN_URL" \
+            --output build/pr-review/comment.md
+
+      - name: Post sanitized review evidence to the pull request
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file build/pr-review/comment.md
+
+      - name: Post fail-closed review status
+        if: failure() && steps.kiro.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
+            --body "<!-- software-factory-governed-review -->
+          ## Governed PR review failed closed
+
+          The Kiro review did not produce a verified Agent trace, so no findings were fabricated.
+
+          Workflow run: $RUN_URL"
+
+      - name: Upload sanitized review receipts
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: governed-pr-review-${{ github.run_id }}
+          path: |
+            build/pr-review/result.json
+            build/pr-review/comment.md
+            build/pr-review/input.sha256
+          if-no-files-found: warn
+          retention-days: 14

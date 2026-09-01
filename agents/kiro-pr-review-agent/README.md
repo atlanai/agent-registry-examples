@@ -1,4 +1,4 @@
-# Kiro PR Review Agent
+# Software Factory PR Review Agent
 
 This is the independent Kiro CLI implementation of the governed PR-review contract. GitHub starts
 an ephemeral Daytona sandbox; Daytona injects the registered Atlan Agent credential and the Kiro

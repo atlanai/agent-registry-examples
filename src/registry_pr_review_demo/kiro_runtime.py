@@ -316,6 +316,13 @@ class KiroDaytonaRuntime:
             if traced.exit_code != 0:
                 raise RuntimeError(f"Atlan trace worker failed with exit code {traced.exit_code}")
             traced_result = json.loads(sandbox.fs.download_file("/workspace/result.json"))
-            return _object(traced_result, "Kiro traced result")
+            output = _object(traced_result, "Kiro traced result")
+            agent_id = trace_payload.get("agent_id")
+            if not isinstance(agent_id, str) or not agent_id.startswith("agent_"):
+                raise RuntimeError("Kiro trace payload is missing Agent identity")
+            output["agent_id"] = agent_id
+            output["daytona_sandbox_id"] = sandbox.id
+            output["daytona_sandbox_lifecycle"] = "deleted_after_run"
+            return output
         finally:
             client.delete(sandbox)

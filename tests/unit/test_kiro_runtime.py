@@ -201,6 +201,9 @@ def test_kiro_daytona_runtime_is_read_only_traced_and_ephemeral(tmp_path: Path) 
     )
 
     assert result["trace_id"] == "b" * 32
+    assert result["agent_id"] == "agent_kiro"
+    assert result["daytona_sandbox_id"] == "sandbox_kiro_demo"
+    assert result["daytona_sandbox_lifecycle"] == "deleted_after_run"
     params = daytona.created_with[0]
     assert isinstance(params, CreateSandboxFromImageParams)
     assert params.ephemeral is True

@@ -213,6 +213,7 @@ def run_kiro_trace_job(
     allowed_attribute_names = {
         "github.repository",
         "github.run_id",
+        "github.pull_request.number",
         "git.commit.sha",
         "daytona.sandbox.id",
         "review.case_id",
