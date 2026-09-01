@@ -384,6 +384,7 @@ KIRO_RUNTIME_DOMAINS = (
     "app.kiro.dev",
     "assets.app.kiro.dev",
     "cognito-identity.us-east-1.amazonaws.com",
+    "oidc.us-east-1.amazonaws.com",
     "prod.us-east-1.auth.desktop.kiro.dev",
     "prod.us-east-1.telemetry.desktop.kiro.dev",
     "prod.download.desktop.kiro.dev",

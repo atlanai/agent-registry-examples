@@ -39,6 +39,7 @@ def test_kiro_environment_allows_current_google_device_flow_hosts() -> None:
         "app.kiro.dev",
         "assets.app.kiro.dev",
         "cognito-identity.us-east-1.amazonaws.com",
+        "oidc.us-east-1.amazonaws.com",
         "q.eu-central-1.amazonaws.com",
         "runtime.eu-central-1.kiro.dev",
         "management.eu-central-1.kiro.dev",

@@ -16,7 +16,7 @@ def main() -> int:
 
     sandbox = Daytona().create(
         CreateSandboxFromSnapshotParams(
-            name="software-factory-kiro-acceptance",
+            name="software-factory-kiro-acceptance-2",
             snapshot="software-factory-kiro-runtime-2-20-1",
             language="python",
             auto_stop_interval=30,
@@ -42,7 +42,7 @@ def main() -> int:
         json.dumps(
             {
                 "sandbox_id": sandbox.id,
-                "sandbox_name": "software-factory-kiro-acceptance",
+                "sandbox_name": "software-factory-kiro-acceptance-2",
                 "agent_secret": "kiro-pr-review-agent-key",
                 "credential_mode": "daytona-secret-placeholder",
             },
