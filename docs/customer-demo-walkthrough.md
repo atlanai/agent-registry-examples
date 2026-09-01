@@ -57,6 +57,8 @@ docs/       operating model and demo evidence
 Say: “This is an ordinary software repository with an AI review layer, not an AI showcase with
 some sample code attached.”
 
+![Software factory repository](images/demo/github-software-factory.png)
+
 ### 2. Show the safe product surface
 
 Open `software/order-service`. The checked-in repository uses parameterized SQL and has a focused
@@ -98,6 +100,11 @@ Agent Registry Action. The workflow is pinned to the reviewed commit on
 
 The publishing token is available only to the protected sync job. Pull-request code gets a
 credential-isolated preflight.
+
+The separate Software Factory Review lane is green and publishes a governed review artifact. It
+does not receive an Agent key or submit telemetry.
+
+![Successful Software Factory Review](images/demo/github-ci-success.png)
 
 ### 6. Show the execution boundary
 
@@ -188,4 +195,3 @@ complete.
 - [Daytona Secrets behavior](https://www.daytona.io/docs/en/secrets/)
 - [Kiro authentication](https://kiro.dev/docs/cli/authentication/)
 - [Kiro firewall endpoints](https://kiro.dev/docs/privacy-and-security/firewalls/)
-
