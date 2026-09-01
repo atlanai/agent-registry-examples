@@ -29,6 +29,23 @@ def test_desired_state_uses_data_workspace_and_reuses_langgraph_framework() -> N
     } == {"pr-review-agent", "registry-skill-improver-cli"}
 
 
+def test_kiro_environment_allows_current_google_device_flow_hosts() -> None:
+    desired = build_desired_registry_state()
+    environment = next(
+        item for item in desired.environments if item.name == "daytona-kiro-pr-review"
+    )
+
+    assert {
+        "app.kiro.dev",
+        "assets.app.kiro.dev",
+        "cognito-identity.us-east-1.amazonaws.com",
+        "q.eu-central-1.amazonaws.com",
+        "runtime.eu-central-1.kiro.dev",
+        "management.eu-central-1.kiro.dev",
+        "telemetry.eu-central-1.kiro.dev",
+    } <= set(environment.allowed_hosts)
+
+
 def test_registration_plan_creates_only_missing_objects() -> None:
     desired = build_desired_registry_state()
     inventory = RegistryInventory(

@@ -2,6 +2,12 @@ name: Kiro PR Review in Daytona
 
 on:
   workflow_dispatch:
+    inputs:
+      bootstrap_device_login:
+        description: Create a bounded live sandbox for Google device login
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -30,9 +36,17 @@ jobs:
         run: uv sync --locked
 
       - name: Verify and stage pinned Kiro CLI
+        if: ${{ !inputs.bootstrap_device_login }}
         run: uv run python scripts/fetch_kiro.py
 
+      - name: Bootstrap Kiro Google device-login sandbox
+        if: ${{ inputs.bootstrap_device_login }}
+        env:
+          DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
+        run: uv run python scripts/bootstrap_kiro_device_sandbox.py
+
       - name: Run agent-authenticated Kiro review in Daytona
+        if: ${{ !inputs.bootstrap_device_login }}
         env:
           DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
         run: |
@@ -43,7 +57,7 @@ jobs:
             --output build/kiro-review/result.json
 
       - name: Upload sanitized review evidence
-        if: always()
+        if: ${{ always() && !inputs.bootstrap_device_login }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: kiro-review-${{ github.run_id }}
