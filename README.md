@@ -20,7 +20,8 @@ the governed review returns `changes_requested` without applying the patch.
 |---|---|
 | [Product software](software/order-service/) | Safe order-service code and its focused test |
 | [PR review agent](agents/pr-review-agent/) | LangGraph entrypoint, immutable Registry identity, Daytona environment |
-| [Kiro PR review agent](agents/kiro-pr-review-agent/) | Headless Kiro implementation with read, grep, and skill-context authority only |
+| [Kiro PR review agent](agents/kiro-pr-review-agent/) | Headless Kiro implementation with read-only discovery and skill-context authority |
+| [Engineering PR review agent](agents/engineering-pr-review-agent/) | Live Engineering identity used by the multi-case Daytona acceptance suite |
 | [Trace improver](agents/trace-improver/) | Proposal-only agent that learns from version-scoped traces |
 | [Secure review skill](skills/secure-pr-review/) | Git-authored policy published to Registry |
 | [Test impact skill](skills/test-impact-analysis/) | Maps changed behavior to focused regression coverage |
@@ -73,7 +74,8 @@ telemetry belongs to the Daytona acceptance lanes; `ATLANAI_TOKEN` remains scope
 `Kiro PR Review in Daytona` is an independent manual acceptance lane. It downloads only the pinned
 Kiro 2.20.1 archive, verifies both archive and launcher SHA-256 values, uploads the synthetic service,
 diff, exact skill bundles, custom-agent policy, and the pinned `atlanai` CLI to Daytona. Kiro runs
-with only `read`, `grep`, and Kiro's internal `disclose_context`; the CLI then submits sanitized
+with only the read category (`read`, `grep`, and `glob`) plus Kiro's internal
+`disclose_context`; the CLI then submits sanitized
 OTLP JSON through the Gateway REST API.
 The run fails if Agent identity, skill fingerprints, structured output, Session,
 Output, or Agent/Skill trace readback is incomplete.
@@ -105,6 +107,23 @@ docs/                                    Architecture, API contracts, runbook, d
 ```
 
 ## Evidence status
+
+The current customer-demo identity is **Engineering PR Review Agent**
+(`agent_01m1pn4k5deggsts6h7fvfvcgx`) in the Engineering workspace. On 4 September 2026, one live
+Daytona sandbox ran Kiro v3 against three customer-neutral PR fixtures and produced three complete,
+Agent-authenticated Atlan runs:
+
+| Case | Decision | Findings | Tokens | Trace |
+|---|---|---:|---:|---|
+| Injection and SQL regression | `changes_requested` | 2 | 5,063 | `9dd6c7487b17b23847379f21a8808e67` |
+| Safe parameterized change | `approve` | 0 | 5,063 | `aa8be6e221561f60ee865a7e0193e4cb` |
+| SQL formatting regression | `changes_requested` | 1 | 5,063 | `35d5dac29416525e29e46cd4dadf11a8` |
+
+Every trace has seven ordered spans: root task, turn, model request, three named Skill calls, and
+model response. Each has stored sanitized input/output, Kiro credit-derived cost, a two-message
+Session, a linked Output, and successful read-back through the Agent plus all three Skill facades.
+The live sandbox is `engineering-pr-review-live-20260904`
+(`72a2018b-d1d0-4e8b-801b-da857a71a727`).
 
 The checked-in [Registry inventory](docs/registry-inventory.md) records the verified historical
 workspace objects. The demo evidence includes:
@@ -154,8 +173,9 @@ code stays safe.
 ## Design boundaries
 
 - Daytona receives a bounded synthetic workspace, not Git credentials or the full repository.
-- Kiro has no shell, write, Git mutation, web, or MCP authority; `disclose_context` only activates
-  the checked-in skill resources.
+- Kiro has no shell, write, Git mutation, web, MCP, or sub-agent authority; read-only discovery is
+  limited to `read`, `grep`, and `glob`, while `disclose_context` only activates the checked-in
+  skill resources.
 - Runtime egress is an explicit host allowlist; wildcard internet access is disabled.
 - GitHub pull-request code never receives the Registry publishing credential.
 - Every Daytona run requires its registered Agent key; missing identity fails before execution.

@@ -72,6 +72,9 @@ class AgentEvidenceClient:
         output_url: str,
         model_id: str | None,
         decision: str,
+        user_message: str,
+        assistant_message: str,
+        input_tokens: int = 0,
         runtime: str = "kiro",
     ) -> tuple[str, str]:
         display_runtime = "LangGraph" if runtime == "langgraph" else "Kiro"
@@ -92,10 +95,38 @@ class AgentEvidenceClient:
                 "environment_id": environment_id,
                 "model_id": model_id,
                 "stop_reason": "final_answer",
-                "title": "Synthetic risky order-service patch",
+                "title": user_message[:160],
+                "message_count": 2,
+                "usage": {"input_tokens": input_tokens, "output_tokens": 0},
             },
         )
         session_id = _string(session, "id")
+        self._request(
+            "POST",
+            f"/agent/v1/sessions/{session_id}/messages",
+            {
+                "name": _artifact_name("user-request", external_session_id),
+                "display_name": "Review request",
+                "workspace_id": self._workspace_id,
+                "sequence_number": 0,
+                "message_role": "user",
+                "content": user_message,
+            },
+        )
+        self._request(
+            "POST",
+            f"/agent/v1/sessions/{session_id}/messages",
+            {
+                "name": _artifact_name("assistant-response", external_session_id),
+                "display_name": "Review decision",
+                "workspace_id": self._workspace_id,
+                "sequence_number": 1,
+                "message_role": "assistant",
+                "content": assistant_message,
+                "model": model_id,
+                "usage": {"input_tokens": input_tokens, "output_tokens": 0},
+            },
+        )
         output = self._request(
             "POST",
             "/agent/v1/outputs",
@@ -114,11 +145,17 @@ class AgentEvidenceClient:
         output_id = _string(output, "id")
         self._verify_trace_facades(agent_id=agent_id, skill_ids=skill_ids, trace_id=trace_id)
         session_readback = self._request("GET", f"/agent/v1/sessions/{session_id}")
+        messages_readback = self._request(
+            "GET", f"/agent/v1/sessions/{session_id}/messages?limit=10&offset=0"
+        )
         output_readback = self._request("GET", f"/agent/v1/outputs/{output_id}")
         if session_readback.get("subject_id") != agent_id:
             raise RuntimeError("Atlan Session readback lost Agent identity")
         if output_readback.get("session_id") != session_id:
             raise RuntimeError("Atlan Output readback lost Session lineage")
+        messages = messages_readback.get("items")
+        if not isinstance(messages, list) or len(cast(list[object], messages)) != 2:
+            raise RuntimeError("Atlan Session readback lost the recorded turns")
         return session_id, output_id
 
     def _verify_trace_facades(

@@ -26,6 +26,10 @@ def test_agent_evidence_creates_lineage_and_verifies_both_trace_facades() -> Non
             return b'{"id":"output_demo"}'
         if path == "/agent/v1/sessions/session_demo":
             return b'{"id":"session_demo","subject_id":"agent_demo"}'
+        if path == "/agent/v1/sessions/session_demo/messages?limit=10&offset=0":
+            return b'{"items":[{"seq":0},{"seq":1}],"page":{}}'
+        if path == "/agent/v1/sessions/session_demo/messages" and request.get_method() == "POST":
+            return b'{"id":"message_demo"}'
         if path == "/agent/v1/outputs/output_demo":
             return b'{"id":"output_demo","session_id":"session_demo"}'
         if "/traces/" in path:
@@ -50,13 +54,29 @@ def test_agent_evidence_creates_lineage_and_verifies_both_trace_facades() -> Non
         output_url="https://github.com/atlanai/software-factory-demo/actions/runs/123",
         model_id="auto-selected-model",
         decision="changes_requested",
+        user_message="Review this bounded fixture.",
+        assistant_message="Decision: changes_requested. One finding.",
+        input_tokens=5291,
     )
 
     assert (session_id, output_id) == ("session_demo", "output_demo")
     session_body = requests[0][2]
-    output_body = requests[1][2]
+    output_body = next(
+        body for method, url, body in requests if method == "POST" and url.endswith("/outputs")
+    )
     assert session_body is not None and session_body["subject_id"] == "agent_demo"
     assert session_body["external_session_id"] == "github-123-kiro-review"
+    assert session_body["message_count"] == 2
+    message_bodies = [
+        body
+        for method, url, body in requests
+        if method == "POST" and url.endswith("/sessions/session_demo/messages")
+    ]
+    assert [body["message_role"] for body in message_bodies if body is not None] == [
+        "user",
+        "assistant",
+    ]
+    assert [body["sequence_number"] for body in message_bodies if body is not None] == [0, 1]
     assert output_body is not None and output_body["session_id"] == "session_demo"
     trace_urls = {url for method, url, _ in requests if method == "GET" and "/traces/" in url}
     assert trace_urls == {

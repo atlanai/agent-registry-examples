@@ -5,12 +5,7 @@ import json
 import os
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Protocol, cast
-
-import atlan_ai
-from atlan_ai.client import AtlanAI
-from atlan_ai.langchain import CallbackHandler
-from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+from typing import TYPE_CHECKING, Protocol, cast
 
 from registry_pr_review_demo.agent_evidence import CliAgentEvidenceClient
 from registry_pr_review_demo.cli_trace import (
@@ -21,8 +16,6 @@ from registry_pr_review_demo.cli_trace import (
     OtlpPayloadSubmitter,
     build_sdk_otlp_payload,
 )
-from registry_pr_review_demo.graph import ReviewAgent
-from registry_pr_review_demo.improver import ImprovementAgent, TraceReader, TraceSubmitter
 from registry_pr_review_demo.models import (
     EvaluationCase,
     KnowledgeDocument,
@@ -35,8 +28,11 @@ from registry_pr_review_demo.models import (
     SkillPackage,
 )
 from registry_pr_review_demo.registration import DATA_WORKSPACE_ID
-from registry_pr_review_demo.sdk_trace import SdkReviewTracer
-from registry_pr_review_demo.trace_reader import AtlanCliTraceReader
+
+if TYPE_CHECKING:
+    from atlan_ai.client import AtlanAI
+
+    from registry_pr_review_demo.improver import TraceReader, TraceSubmitter
 
 MAX_JOB_BYTES = 4_000_000
 
@@ -67,6 +63,8 @@ class EmbeddedKnowledge:
 
 
 def run_job(raw_payload: Mapping[str, object]) -> dict[str, object]:
+    from registry_pr_review_demo.graph import ReviewAgent
+
     request, package, documents, reference, _, _ = _parse_job(raw_payload)
     result = ReviewAgent(
         registry=EmbeddedRegistry(package),
@@ -76,6 +74,11 @@ def run_job(raw_payload: Mapping[str, object]) -> dict[str, object]:
 
 
 def run_sdk_job(raw_payload: Mapping[str, object], *, client: AtlanAI) -> dict[str, object]:
+    from atlan_ai.langchain import CallbackHandler
+
+    from registry_pr_review_demo.graph import ReviewAgent
+    from registry_pr_review_demo.sdk_trace import SdkReviewTracer
+
     request, package, documents, reference, fingerprint, evaluation = _parse_job(raw_payload)
     if fingerprint is None or evaluation is None:
         raise ValueError("SDK trace mode requires skill fingerprint and evaluation metadata")
@@ -128,6 +131,9 @@ def run_improver_job(
     reader: TraceReader | None = None,
     submitter: TraceSubmitter | None = None,
 ) -> dict[str, object]:
+    from registry_pr_review_demo.improver import ImprovementAgent
+    from registry_pr_review_demo.trace_reader import AtlanCliTraceReader
+
     target_data = _mapping(raw_payload.get("target_skill"), "target_skill")
     analyzer_data = _mapping(raw_payload.get("analyzer_skill"), "analyzer_skill")
     evaluation_data = _mapping(raw_payload.get("evaluation"), "evaluation")
@@ -178,7 +184,7 @@ def run_kiro_trace_job(
         _string_value(item, "tool name")
         for item in _sequence(raw_payload.get("tool_names", []), "tool_names")
     )
-    if any(name not in {"read", "grep", "disclose_context"} for name in tool_names):
+    if any(name not in {"read", "grep", "glob", "disclose_context"} for name in tool_names):
         raise ValueError("Kiro trace contains a disallowed tool")
     configured: list[tuple[str, SkillFingerprint]] = []
     for raw in _sequence(raw_payload.get("skills"), "skills"):
@@ -239,7 +245,10 @@ def run_kiro_trace_job(
         skills=tuple(configured),
         credits_used=credits_used,
     )
-    receipt = (submitter or KiroCliTraceSubmitter(workspace_id=DATA_WORKSPACE_ID)).submit(
+    workspace_id = os.environ.get("ATLAN_WORKSPACE_ID", DATA_WORKSPACE_ID)
+    if not workspace_id.startswith("workspace_"):
+        raise ValueError("Kiro trace mode requires a Registry workspace id")
+    receipt = (submitter or KiroCliTraceSubmitter(workspace_id=workspace_id)).submit(
         KiroCliTraceRecord(
             session_id=_string(raw_payload, "session_id"),
             agent_id=_string(raw_payload, "agent_id"),
@@ -259,6 +268,7 @@ def run_kiro_trace_job(
         raise RuntimeError("Kiro CLI REST trace was not accepted")
     output = dict(result)
     output["trace_id"] = receipt.trace_id
+    output["assistant_response"] = assistant_response
     return output
 
 
@@ -395,10 +405,20 @@ def main() -> int:
             output_url=_string(typed_payload, "output_url"),
             model_id=model_id,
             decision=_string(result, "decision"),
+            user_message=(
+                "Review customer-neutral pull request fixture "
+                f"{_string(attributes, 'review.case_id')} using all three "
+                "Registry-governed skills and return a decision with evidence."
+            ),
+            assistant_message=_string(result, "assistant_response"),
+            input_tokens=_integer(result, "kiro_tool_tokens"),
         )
         result["session_id"] = session_id
         result["output_id"] = output_id
     elif typed_payload.get("trace_mode") == "sdk":
+        import atlan_ai
+        from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
         exporter = InMemorySpanExporter()
         client = atlan_ai.init(
             service_name="registry-pr-review-sdk",
@@ -434,6 +454,14 @@ def main() -> int:
             output_url=_string(evidence, "output_url"),
             model_id=None,
             decision=_string(result, "decision"),
+            user_message=(
+                "Review this customer-neutral pull request fixture using the configured "
+                "Registry-governed skills and return a decision with evidence."
+            ),
+            assistant_message=(
+                f"Decision: {_string(result, 'decision')}. "
+                f"Recorded {len(_sequence(result.get('findings'), 'findings'))} findings."
+            ),
             runtime="langgraph",
         )
         result["session_id"] = session_id

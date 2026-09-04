@@ -11,8 +11,28 @@ from daytona import CreateSandboxFromImageParams, Daytona, Image
 MAX_STREAM_BYTES = 4_000_000
 MAX_STREAM_EVENTS = 2_000
 MAX_TOOL_EVENTS = 100
-ALLOWED_KIRO_TOOLS = frozenset({"read", "read_file", "grep", "disclose_context"})
-KIRO_TOOL_NAMES = {"read_file": "read"}
+ALLOWED_KIRO_TOOLS = frozenset(
+    {
+        "read",
+        "read_file",
+        "fs_read",
+        "fsRead",
+        "grep",
+        "grep_search",
+        "glob",
+        "list_directory",
+        "file_search",
+        "disclose_context",
+    }
+)
+KIRO_TOOL_NAMES = {
+    "read_file": "read",
+    "fs_read": "read",
+    "fsRead": "read",
+    "grep_search": "grep",
+    "list_directory": "glob",
+    "file_search": "glob",
+}
 
 
 class ExecuteResponse(Protocol):
@@ -308,7 +328,7 @@ class KiroDaytonaRuntime:
             response = sandbox.process.exec(
                 (
                     "/usr/local/bin/kiro-cli chat --agent-engine v3 --agent pr-review "
-                    "--no-interactive --trust-tools=read,grep,disclose_context "
+                    "--no-interactive --trust-all-tools "
                     "--output-format stream-json "
                     '"Read /workspace/review-contract.json, then review /workspace/change.diff '
                     "using every configured review skill. Return only the required JSON evidence "

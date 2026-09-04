@@ -33,11 +33,10 @@ Open these tabs before the call. Keep them in this order.
 6. [Kiro Agent](https://github.com/atlanai/software-factory-demo/tree/main/agents/kiro-pr-review-agent)
 7. [SkillSync workflow](https://github.com/atlanai/software-factory-demo/actions/workflows/atlan-skill-sync.yml)
 8. [Daytona sandboxes](https://app.daytona.io/dashboard/sandboxes)
-9. [PR Review Agent in Atlan](atlan://open/orgs/atlan-prod/brain/agent/agent_01m1ejp36efnsrw6m8w20atdr3)
-10. [Kiro PR Review Agent in Atlan](atlan://open/orgs/atlan-prod/brain/agent/agent_01m1ejp2w6fy0synanm0qp4akh)
-11. [Secure PR Review skill](atlan://open/orgs/atlan-prod/brain/skill/skill_01m11gr8cjekhb5gvqn0k4x1ny)
-12. [Test Impact Analysis skill](atlan://open/orgs/atlan-prod/brain/skill/skill_01m1a58e1kfx8aq721tnwd8zgm)
-13. [Review Evidence Summary skill](atlan://open/orgs/atlan-prod/brain/skill/skill_01m1a4yhyaey88ykf2ht4qrvc9)
+9. [Engineering PR Review Agent in Atlan](atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx)
+10. [Secure PR Review skill](atlan://open/orgs/atlan-internal/brain/skill/skill_01m1pn0115ee19gjbzdjxdrady)
+11. [Test Impact Analysis skill](atlan://open/orgs/atlan-internal/brain/skill/skill_01m1pn011df01a85dyc5ztjk5h)
+12. [Review Evidence Summary skill](atlan://open/orgs/atlan-internal/brain/skill/skill_01m1pn0110fz9b869ddyc00sh6)
 
 ## The story, one tab at a time
 
@@ -85,8 +84,9 @@ Each skill has a Registry ID, semantic version, source digest, and `SKILL.md` di
 Open the LangGraph Agent first. It is deterministic: load governed context, inspect the diff, and
 decide. The Atlan SDK creates the root review span and the three skill spans.
 
-Open the Kiro Agent next. Its custom-agent policy grants only `read`, `grep`, and Kiro's internal
-`disclose_context` tool. It has no shell, write, Git mutation, web, or MCP authority. Kiro's JSONL
+Open the Kiro Agent next. Its custom-agent policy grants only read-only discovery through `read`,
+`grep`, and `glob`, plus Kiro's internal `disclose_context` tool. It has no shell, write, Git
+mutation, web, MCP, or sub-agent authority. Kiro's JSONL
 events are sanitized before they become trace evidence.
 
 The point is not that one framework wins. The point is that both implementations remain inside one
@@ -121,9 +121,9 @@ skill fingerprints inside Daytona:
 That screenshot is historical acceptance evidence from 30 August 2026. Its sandbox has since been
 deleted. Do not present it as a currently running sandbox.
 
-The current acceptance sandbox is `software-factory-kiro-acceptance-4`
-(`56050dee-0103-43d3-82a9-5b1c73bf2d88`). Open its terminal only to show the bounded environment;
-do not expose the stored JSONL stream or authentication state.
+The current acceptance sandbox is `engineering-pr-review-live-20260904`
+(`72a2018b-d1d0-4e8b-801b-da857a71a727`). It contains three customer-neutral cases. Open the
+sandbox inventory only; do not expose the stored JSONL stream or authentication state.
 
 ### 7. Open each Agent in Atlan
 
@@ -141,6 +141,7 @@ The final demo identities are:
 |---|---|---|
 | LangGraph | `agent_01m1ejp36efnsrw6m8w20atdr3` | `agent_framework_01m09v3ncvey0a4ndx008we9kr` |
 | Kiro CLI | `agent_01m1ejp2w6fy0synanm0qp4akh` | `agent_framework_01m1a5cq3hfdg88xkbwpz4w807` |
+| Engineering Kiro CLI | `agent_01m1pn4k5deggsts6h7fvfvcgx` | `agent_framework_01m1pn17rvef0b8bqtf3k1v96f` |
 
 Both API keys resolve through the Atlan CLI as the correct machine principal with
 `contextplane:read` and `contextplane:write` scopes. The keys are not in GitHub Secrets or the
@@ -157,37 +158,35 @@ Say: “The learning loop ends in a reviewable Git change, not an autonomous pol
 
 ## Live acceptance status
 
-Checked on 1 September 2026:
+Checked on 4 September 2026:
 
 | Check | Result | Evidence |
 |---|---|---|
-| Final Agent creation | Pass | Both create calls returned HTTP 201 and reveal-once 90-day API keys |
-| Agent machine identity | Pass | `atlanai auth status` and `registry:/auth/whoami` resolve the LangGraph key to its Agent ID |
-| Shared skill relationships | Pass | Each final Agent has three active `uses_skill` relationships |
+| Engineering Agent | Pass | Active `agent_01m1pn4k5deggsts6h7fvfvcgx` in the Engineering workspace |
+| Agent machine identity | Pass | Every run authenticated with the Agent credential injected by Daytona |
+| Shared skill relationships | Pass | Exactly three active `uses_skill` relationships |
 | Daytona Agent-secret mount | Pass | Daytona injects an opaque placeholder; the pinned Atlan CLI exchanges it without exposing plaintext |
-| LangGraph execution in Daytona | Pass through review; telemetry blocked | Agent-authenticated OTLP ingest returns HTTP 503 `service_unavailable` |
 | Kiro 2.20.1 runtime | Pass | Complete three-binary archive and individual SHA-256 values verified |
 | Kiro Free device login in Daytona | Pass | Google/AWS device flow completed after the exact OIDC and Kiro hosts were allowlisted; no paid plan required |
-| Kiro review result | Pass | `changes_requested`, 2 findings, and all 3 Registry skill fingerprints |
-| Kiro Agent trace | Pass | Ordered trace `47fe8b2d2bc824962bb8a85c4b5e175e` verified through the Agent and all 3 Skill facades |
-| Kiro Session and Output | Pass | Session `session_01m1fp7y6det9vzcdr2esvgcte` has 2 sanitized turns; Output `output_01m1fp7z1gewhvem8kqg9xmskf` links the GitHub run |
-| Native Kiro Usage | Pass | Latest run shows instruction → prompt → 3 named Skills → response, `kiro-auto`, 5,291 tokens, and USD 0.006888 plan-equivalent cost |
+| Kiro review matrix | Pass | Risky: 2 findings; safe: approved; SQL format regression: 1 finding |
+| Kiro Agent traces | Pass | Three complete seven-span traces verified through the Agent and all three Skill facades |
+| Kiro Sessions and Outputs | Pass | Every run has two sanitized messages and one linked Output |
+| Native Kiro Usage | Pass | Every run records 5,063 observed tokens and a credit-derived plan-equivalent cost |
 
-Open the newer Session titled **Governed Kiro review with usage and cost**. It shows
-two turns without raw code or diff content. An older zero-turn Session remains because the Session
-API is append-only; do not use that historical row in the customer walkthrough.
+Open the three newest Sessions. Their names identify the case, and each shows two sanitized turns
+without raw code or diff content. Then use Usage to compare an approval against two blocked changes.
 
 ## Recovery checklist before a customer call
 
-1. Open the top two-turn Kiro Session and verify the sanitized request and response.
-2. Open Kiro Usage, select the latest `software_factory.pr_review` run, and switch to **Full trace**.
+1. Open the three newest Kiro Sessions and verify that each has the sanitized request and response.
+2. Open Kiro Usage and compare the newest three `software_factory.pr_review` runs.
 3. Verify the three named Skill calls appear before the final response and open each fingerprint.
 4. Explain that the displayed USD value is a Pro-plan-equivalent estimate; the Free-plan bill is USD 0.
 5. Re-run the LangGraph lane and require `trace_id`, `session_id`, and `output_id` before adding it
    to the live walkthrough.
 
-The Kiro lane is ready for the live walkthrough. Keep the LangGraph Usage tab out until its current
-Agent-authenticated telemetry acceptance also passes.
+The Engineering Kiro lane is ready for the live walkthrough. Keep the historical LangGraph Usage
+tab out until its current Agent-authenticated telemetry acceptance also passes.
 
 ## Useful links
 

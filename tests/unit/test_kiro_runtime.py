@@ -60,6 +60,9 @@ def test_parse_current_v3_stream_reads_fenced_result_and_sanitized_tools() -> No
                                             "usage": 0.3443911164179104,
                                             "usedTools": [
                                                 "read_file",
+                                                "file_search",
+                                                "list_directory",
+                                                "grep_search",
                                                 "disclose_context",
                                                 "read_file",
                                             ],
@@ -88,7 +91,7 @@ def test_parse_current_v3_stream_reads_fenced_result_and_sanitized_tools() -> No
     assert parsed["decision"] == "changes_requested"
     assert parsed["kiro_tool_tokens"] == 5291
     assert parsed["kiro_credits_used"] == pytest.approx(0.3443911164179104)
-    assert tools == ("read", "disclose_context")
+    assert tools == ("read", "glob", "grep", "disclose_context")
 
 
 @pytest.mark.parametrize(
@@ -219,7 +222,7 @@ def test_kiro_daytona_runtime_is_read_only_traced_and_ephemeral(tmp_path: Path) 
     assert daytona.deleted == [sandbox]
     command = sandbox.process.commands[0][0]
     assert "--agent-engine v3" in command
-    assert "--trust-tools=read,grep,disclose_context" in command
+    assert "--trust-all-tools" in command
     assert "synthetic patch" not in command
     assert {path for _, path in sandbox.fs.uploads} >= {
         "/workspace/agent.pyz",

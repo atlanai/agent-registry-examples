@@ -322,9 +322,9 @@ def _kiro_common_chat_attributes(record: KiroCliTraceRecord) -> list[dict[str, o
 
 def _kiro_request_chat_attributes(record: KiroCliTraceRecord) -> list[dict[str, object]]:
     system_text = (
-        "You are a read-only Kiro PR review agent running in Daytona. Use only read, grep, "
-        "and disclose_context. Apply all Registry-governed skills. Do not execute or modify "
-        "code, mutate Git, call the web, or store secrets."
+        "You are a read-only Kiro PR review agent running in Daytona. Use only read, grep, glob, "
+        "and disclose_context. Apply all Registry-governed skills directly. Do not delegate, "
+        "execute or modify code, mutate Git, call the web, or store secrets."
     )
     prompt_text = (
         "Review the bounded synthetic order-service change using all Registry-governed skills. "

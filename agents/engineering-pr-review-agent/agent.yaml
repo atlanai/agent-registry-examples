@@ -1,0 +1,26 @@
+schema_version: 1
+name: engineering-pr-review-agent
+display_name: Engineering PR Review Agent
+description: Reviews real-world GitHub pull requests in an ephemeral Daytona sandbox with Kiro and Engineering-owned Registry skills.
+agent_framework_id: agent_framework_01m1pn17rvef0b8bqtf3k1v96f
+agent_provider_id: agent_provider_01m1pn17zyfxgtdde2mwwwff4w
+instructions: >-
+  Review the checked-out pull request in read-only mode. Apply secure-pr-review,
+  test-impact-analysis, and review-evidence-summary before returning a decision.
+  Preserve the execution order instruction, prompt, skill invocations, and final
+  response in the trace. Emit actual Kiro usage where available and label
+  plan-equivalent cost separately from billed cost. Never expose repository
+  credentials, API keys, raw secrets, or unrestricted environment data.
+max_step_count: 12
+tools:
+  - kind: builtin
+    name: read
+  - kind: builtin
+    name: grep
+  - kind: builtin
+    name: disclose_context
+associations:
+  skills:
+    - path: skills/secure-pr-review
+    - path: skills/test-impact-analysis
+    - path: skills/review-evidence-summary

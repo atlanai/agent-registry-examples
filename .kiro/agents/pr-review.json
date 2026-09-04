@@ -9,5 +9,16 @@
     "file://.kiro/skills/review-evidence-summary/SKILL.md",
     "file://review-contract.json"
   ],
-  "prompt": "Review only the supplied patch and repository files. Apply every loaded Registry skill resource, never modify or execute code, and return only the required JSON evidence object with exact skill fingerprints."
+  "permissions": {
+    "rules": [
+      {"capability": "fs_read", "match": ["/workspace/**"], "effect": "allow"},
+      {"capability": "fs_write", "match": ["*"], "effect": "deny"},
+      {"capability": "shell", "match": ["*"], "effect": "deny"},
+      {"capability": "web_fetch", "match": ["*"], "effect": "deny"},
+      {"capability": "web_search", "match": ["*"], "effect": "deny"},
+      {"capability": "mcp", "match": ["*"], "effect": "deny"},
+      {"capability": "subagent", "match": ["*"], "effect": "deny"}
+    ]
+  },
+  "prompt": "Review only the supplied patch and repository files. Apply every loaded Registry skill resource directly; do not delegate to sub-agents. Never modify or execute code, and return only the required JSON evidence object with exact skill fingerprints."
 }

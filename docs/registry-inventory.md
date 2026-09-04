@@ -1,6 +1,42 @@
 # Registry inventory
 
-Target workspace: Data (`workspace_01m0g43eb2fmgbv21dc7ygs7rc`).
+Current target workspace: Engineering (`workspace_01m1dtasngfk08s4xydm62ewdw`). Historical Data
+workspace evidence is retained below for provenance.
+
+## Current Engineering registration
+
+| Kind | Name | ID | Status |
+|---|---|---|---|
+| Repository | `atlanai/software-factory-demo` | `repo_01m1pmzzqae68srktaf4whqvwt` | Active, Git provenance |
+| Framework | `kiro-cli` | `agent_framework_01m1pn17rvef0b8bqtf3k1v96f` | Registered |
+| Provider | `daytona` | `agent_provider_01m1pn17zyfxgtdde2mwwwff4w` | Registered |
+| Environment | `daytona-kiro-pr-review` | `agent_environment_01m1pn1qw6e3hr8v0emnb1b6nh` | Limited network |
+| Agent | `engineering-pr-review-agent` | `agent_01m1pn4k5deggsts6h7fvfvcgx` | Active; Agent key verified |
+| Skill | `secure-pr-review` | `skill_01m1pn0115ee19gjbzdjxdrady` | Active, v1 |
+| Skill | `test-impact-analysis` | `skill_01m1pn011df01a85dyc5ztjk5h` | Active, v1 |
+| Skill | `review-evidence-summary` | `skill_01m1pn0110fz9b869ddyc00sh6` | Active, v1 |
+
+The Agent has exactly three active `uses_skill` relationships, one to each Skill above. The
+relationships and every live trace were read back from the API after creation.
+
+## Engineering multi-case acceptance
+
+| Case | Decision | Findings | Trace | Session | Output |
+|---|---|---:|---|---|---|
+| `risky-injection-regression` | `changes_requested` | 2 | `9dd6c7487b17b23847379f21a8808e67` | `session_01m1pqe910fe8v9eptkqwnebs3` | `output_01m1pqe9nefdrvyqbrekfrgdvt` |
+| `safe-parameterized-change` | `approve` | 0 | `aa8be6e221561f60ee865a7e0193e4cb` | `session_01m1pqg2mkfchb1k5m9j5bnqkd` | `output_01m1pqg3fhe8s9kfv7d3s8vfcf` |
+| `sql-format-regression` | `changes_requested` | 1 | `35d5dac29416525e29e46cd4dadf11a8` | `session_01m1pqj1bffv9v3ptvy892szc3` | `output_01m1pqj1z0etsarqvqk79j6wva` |
+
+All three are complete `software_factory.pr_review` traces with seven ordered spans, 5,063 observed
+Kiro tool/context tokens, stored sanitized prompt and response content, three named Skill spans,
+two Session messages, one linked Output, and successful Agent plus three-Skill facade read-back.
+Credit-derived plan-equivalent costs are USD 0.013226, USD 0.012968, and USD 0.013641; the Kiro Free
+plan's billed cost remains USD 0.
+
+Live Daytona sandbox: `engineering-pr-review-live-20260904`
+(`72a2018b-d1d0-4e8b-801b-da857a71a727`).
+
+## Historical Data registration
 
 This file records verified live state only. Planned ids remain blank until create plus authenticated
 readback succeeds.
@@ -53,7 +89,8 @@ changing the archive.
 - Verified Atlan CLI `0.3.53` uploaded through the Daytona filesystem API after matching SHA-256
   `2de549a7f584f748f8e082e7c88b18a0e916ef3051f06be2aeddfefa6b13ea59`.
 - Kiro authenticated from the sandbox with Google device flow on the Free plan.
-- Kiro v3 used only `read`, `grep`, and the read-only `disclose_context` skill activator.
+- Kiro v3 used only read-category tools (`read`, `grep`, and `glob`) plus the read-only
+  `disclose_context` skill activator.
 - Validated result: `changes_requested`, 2 findings, all 3 exact Registry skill fingerprints.
 - GitHub bootstrap run: `33570899213`.
 - Ordered Agent-authenticated trace `47fe8b2d2bc824962bb8a85c4b5e175e` is readable through the Agent

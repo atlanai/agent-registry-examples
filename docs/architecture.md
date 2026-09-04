@@ -59,7 +59,7 @@ The binary is downloaded from Atlan's signed preview manifest and checked agains
 
 The Kiro sandbox embeds the verified 2.20.1 Linux launcher. Archive and launcher digests are pinned
 in `vendor/kiro/manifest.json`; the official installer is never piped to a shell. Kiro receives only
-`read`, `grep`, and the read-only `disclose_context` skill activator. The pinned `atlanai` CLI in that same sandbox converts the sanitized result into
+the read-only `read`, `grep`, and `glob` category plus the `disclose_context` skill activator. The pinned `atlanai` CLI in that same sandbox converts the sanitized result into
 OTLP JSON and submits it through `POST /otel/v1/traces`. All sandboxes are ephemeral and every exit
 path deletes them.
 

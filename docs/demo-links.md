@@ -34,9 +34,23 @@ Agent Registry is currently a desktop/deep-link surface. Paste these links into 
 - Improver trace: `atlan://open/orgs/atlan/traces/9e916c9e533d518e6a277bf7a4aa5761`
 - [Agent Registry documentation](https://platform.atlan.com/)
 
+### Current Engineering demo
+
+- Engineering PR Review Agent: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx`
+- Risky regression trace: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx?tab=overview&agentTab=usage&run=9dd6c7487b17b23847379f21a8808e67&view=trace`
+- Safe change trace: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx?tab=overview&agentTab=usage&run=aa8be6e221561f60ee865a7e0193e4cb&view=trace`
+- SQL formatting trace: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx?tab=overview&agentTab=usage&run=35d5dac29416525e29e46cd4dadf11a8&view=trace`
+- Secure review skill: `atlan://open/orgs/atlan-internal/brain/skill/skill_01m1pn0115ee19gjbzdjxdrady`
+- Test impact skill: `atlan://open/orgs/atlan-internal/brain/skill/skill_01m1pn011df01a85dyc5ztjk5h`
+- Evidence summary skill: `atlan://open/orgs/atlan-internal/brain/skill/skill_01m1pn0110fz9b869ddyc00sh6`
+
 ## Daytona
 
 - [Daytona sandboxes](https://app.daytona.io/dashboard/sandboxes)
+
+Current sandbox: `engineering-pr-review-live-20260904`
+(`72a2018b-d1d0-4e8b-801b-da857a71a727`). It contains the pinned Kiro runtime, three exact Skill
+bundles, three synthetic PR fixtures, and the Agent-authenticated Atlan trace worker.
 
 The historical Kiro sandbox has been deleted. Use the dashboard and the walkthrough screenshot for
 provider evidence; do not present the old sandbox ID as a live link.

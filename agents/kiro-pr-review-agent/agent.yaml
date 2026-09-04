@@ -8,7 +8,7 @@ skills:
   - secure-pr-review@2
   - test-impact-analysis@1
   - review-evidence-summary@1
-entrypoint: kiro-cli chat --agent-engine v3 --agent pr-review --no-interactive --trust-tools=read,grep,disclose_context --output-format stream-json
+entrypoint: kiro-cli chat --agent-engine v3 --agent pr-review --no-interactive --trust-all-tools --output-format stream-json
 network:
   mode: limited
   allowed_hosts:
