@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from typing import cast
+
 import atlan_ai
+import pytest
+from atlan_ai.client import AtlanAI
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from registry_pr_review_demo.models import (
@@ -12,6 +16,27 @@ from registry_pr_review_demo.models import (
     SkillFingerprint,
 )
 from registry_pr_review_demo.sdk_trace import SdkReviewTracer
+
+
+def test_sdk_trace_requires_a_verified_skill() -> None:
+    tracer = SdkReviewTracer(cast(AtlanAI, object()))
+    request = ReviewRequest("example/repo", 1, "a" * 40, "+safe = True")
+    evaluation = EvaluationCase("safe-query", ReviewDecision.APPROVE)
+
+    with (
+        pytest.raises(ValueError, match="at least one"),
+        tracer.review(
+            request,
+            (),
+            evaluation,
+            agent_id="agent_demo",
+            provider_id="agent_provider_demo",
+            environment_id="agent_environment_demo",
+            external_session_id="session_demo",
+            sandbox_id="sandbox_demo",
+        ),
+    ):
+        pass
 
 
 def test_sdk_trace_records_exact_skill_usage_without_raw_diff() -> None:
@@ -58,6 +83,7 @@ def test_sdk_trace_records_exact_skill_usage_without_raw_diff() -> None:
         environment_id="agent_environment_demo",
         external_session_id="session_demo",
         sandbox_id="sandbox_demo",
+        visitor_id="visitor_demo",
     ) as run:
         run.complete(result)
 
@@ -65,13 +91,16 @@ def test_sdk_trace_records_exact_skill_usage_without_raw_diff() -> None:
     client.shutdown()
     spans = exporter.get_finished_spans()
     root = next(span for span in spans if span.name == "software_factory.pr_review")
-    skill = next(span for span in spans if span.name == "review.skill")
+    skill = next(span for span in spans if span.name == "execute_tool secure-pr-review")
     assert root.attributes is not None
     assert root.attributes["demo.eval.case_id"] == "sql-format-interpolation"
     assert root.attributes["demo.eval.expected_decision"] == "changes_requested"
     assert root.attributes["review.decision"] == "approve"
     assert root.attributes["atlan.agent.id"] == "agent_demo"
     assert root.attributes["daytona.sandbox.id"] == "sandbox_demo"
+    assert root.attributes["atlan.visitor.id"] == "visitor_demo"
+    assert root.attributes["input.value"]
+    assert root.attributes["output.value"]
     assert skill.attributes is not None
     assert skill.attributes["atlan.skill.name"] == "secure-pr-review"
     assert skill.attributes["atlan.skill.version"] == "0.1.0"
@@ -79,5 +108,8 @@ def test_sdk_trace_records_exact_skill_usage_without_raw_diff() -> None:
     assert skill.attributes["atlan.skill.skillmd_sha256"] == "def456"
     assert skill.attributes["atlan.skill.fingerprint_source"] == "registry"
     assert skill.attributes["atlan.registry.skill.id"] == "skill_demo"
+    assert skill.attributes["gen_ai.tool.name"] == "secure-pr-review"
+    assert skill.attributes["gen_ai.tool.type"] == "skill"
+    assert skill.attributes["atlan.visitor.id"] == "visitor_demo"
     serialized = repr([(span.name, span.attributes) for span in spans])
     assert "SELECT * FROM events" not in serialized

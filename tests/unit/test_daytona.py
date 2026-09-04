@@ -75,7 +75,11 @@ def test_daytona_runtime_uses_an_ephemeral_network_blocked_sandbox() -> None:
 
     result = runtime.run(payload)
 
-    assert result == expected
+    assert result == {
+        **expected,
+        "daytona_sandbox_id": "unknown",
+        "daytona_sandbox_lifecycle": "deleted_after_run",
+    }
     params = client.created_with[0]
     assert isinstance(params, CreateSandboxFromImageParams)
     assert params.ephemeral is True
@@ -94,6 +98,27 @@ def test_daytona_runtime_uses_an_ephemeral_network_blocked_sandbox() -> None:
     assert cwd == "/workspace"
     assert env == {"PYTHONDONTWRITEBYTECODE": "1"}
     assert timeout == 300
+
+
+def test_daytona_runtime_can_retain_a_named_demo_sandbox() -> None:
+    sandbox = FakeSandbox(b'{"decision":"approve"}', FakeExecResponse(exit_code=0))
+    client = FakeDaytona(sandbox)
+    runtime = DaytonaRuntime(
+        client_factory=lambda: client,
+        worker_archive=b"worker archive",
+        sandbox_name="engineering-langgraph-demo",
+        retain_sandbox=True,
+    )
+
+    result = runtime.run({"diff": "+safe = True"})
+
+    assert result["daytona_sandbox_lifecycle"] == "retained_for_demo"
+    params = client.created_with[0]
+    assert isinstance(params, CreateSandboxFromImageParams)
+    assert params.name == "engineering-langgraph-demo"
+    assert params.ephemeral is False
+    assert params.ttl_minutes == 240
+    assert client.deleted == []
 
 
 def test_daytona_runtime_deletes_the_sandbox_when_the_worker_fails() -> None:
@@ -129,3 +154,19 @@ def test_daytona_runtime_builds_sdk_image_with_limited_gateway_access(tmp_path: 
     assert params.secrets == {"ATLAN_API_KEY": "registry-sdk-agent-key"}
     assert isinstance(params.image, Image)
     assert "atlan_ai-0.1.0-py3-none-any.whl" in params.image.dockerfile()
+
+
+def test_daytona_runtime_rejects_invalid_network_and_wheel_inputs(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="invalid hostname"):
+        DaytonaRuntime(worker_archive=b"worker", allowed_domains=("https://example.com",))
+
+    wheel = tmp_path / "invalid wheel.whl"
+    wheel.write_bytes(b"wheel")
+    sandbox = FakeSandbox(b"{}", FakeExecResponse(exit_code=0))
+    runtime = DaytonaRuntime(
+        client_factory=lambda: FakeDaytona(sandbox),
+        worker_archive=b"worker",
+        sdk_wheel=wheel,
+    )
+    with pytest.raises(ValueError, match="filename"):
+        runtime.run({})

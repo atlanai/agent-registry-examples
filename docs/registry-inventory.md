@@ -12,6 +12,8 @@ workspace evidence is retained below for provenance.
 | Provider | `daytona` | `agent_provider_01m1pn17zyfxgtdde2mwwwff4w` | Registered |
 | Environment | `daytona-kiro-pr-review` | `agent_environment_01m1pn1qw6e3hr8v0emnb1b6nh` | Limited network |
 | Agent | `engineering-pr-review-agent` | `agent_01m1pn4k5deggsts6h7fvfvcgx` | Active; Agent key verified |
+| Environment | `daytona-langgraph-pr-review` | `agent_environment_01m1q154b9fy0rtmyzgpd0mxtx` | Limited network |
+| Agent | `engineering-langgraph-pr-review-agent` | `agent_01m1q17jwzfv8b6fmg75x08z0g` | Active; SDK trace verified |
 | Skill | `secure-pr-review` | `skill_01m1pn0115ee19gjbzdjxdrady` | Active, v1 |
 | Skill | `test-impact-analysis` | `skill_01m1pn011df01a85dyc5ztjk5h` | Active, v1 |
 | Skill | `review-evidence-summary` | `skill_01m1pn0110fz9b869ddyc00sh6` | Active, v1 |
@@ -40,6 +42,18 @@ stored.
 
 Live Daytona sandbox: `engineering-pr-review-live-20260904`
 (`72a2018b-d1d0-4e8b-801b-da857a71a727`).
+
+## Engineering LangGraph acceptance
+
+- Agent: `agent_01m1q17jwzfv8b6fmg75x08z0g`
+- Sandbox: `engineering-langgraph-pr-review-live-20260904`
+  (`b540ee5f-f318-4bc0-aaf8-c91c47455a1e`), retained for the demo
+- Trace: `b56bbf54bc1d40529b9b7b4322396d02`, complete and `ok`
+- Session: `session_01m1q1grq2etr972vtgxmhwd46`, two messages, Visitor `Rohan Goel`
+- Output: `output_01m1q1gtjgexr81w66bz4tr69y`, linked to the Session
+- Spans: SDK root, three named Skill calls, and `LangGraph`, `load_skill`, `load_knowledge`,
+  `inspect_diff`, and `decide`
+- All three Skill trace facades returned the same trace ID.
 
 ### Thirty-day historical replay
 

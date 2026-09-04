@@ -61,6 +61,8 @@ class DaytonaRuntime:
         secrets: dict[str, str] | None = None,
         env_vars: dict[str, str] | None = None,
         payload_overrides: Mapping[str, object] | None = None,
+        sandbox_name: str | None = None,
+        retain_sandbox: bool = False,
     ) -> None:
         self._client_factory = client_factory or cast(Callable[[], DaytonaClient], Daytona)
         self._worker_archive = worker_archive
@@ -72,6 +74,8 @@ class DaytonaRuntime:
         self._secrets = dict(secrets or {})
         self._env_vars = dict(env_vars or {})
         self._payload_overrides = dict(payload_overrides or {})
+        self._sandbox_name = sandbox_name
+        self._retain_sandbox = retain_sandbox
 
     def run(self, payload: Mapping[str, object]) -> dict[str, object]:
         client = self._client_factory()
@@ -88,10 +92,13 @@ class DaytonaRuntime:
             image.run_commands("chmod 0755 /usr/local/bin/atlanai")
         network_block_all = not self._allowed_domains
         params = CreateSandboxFromImageParams(
+            name=self._sandbox_name,
             image=image,
             language="python",
-            ephemeral=True,
-            auto_stop_interval=5,
+            ephemeral=not self._retain_sandbox,
+            auto_stop_interval=30 if self._retain_sandbox else 5,
+            auto_archive_interval=240 if self._retain_sandbox else None,
+            ttl_minutes=240 if self._retain_sandbox else None,
             network_block_all=network_block_all,
             domain_allow_list=(",".join(self._allowed_domains) if self._allowed_domains else None),
             secrets=self._secrets or None,
@@ -140,6 +147,12 @@ class DaytonaRuntime:
             result = json.loads(raw_result)
             if not isinstance(result, dict):
                 raise RuntimeError("Daytona worker returned an invalid result shape")
-            return cast(dict[str, object], result)
+            typed_result = cast(dict[str, object], result)
+            typed_result["daytona_sandbox_id"] = getattr(sandbox, "id", "unknown")
+            typed_result["daytona_sandbox_lifecycle"] = (
+                "retained_for_demo" if self._retain_sandbox else "deleted_after_run"
+            )
+            return typed_result
         finally:
-            client.delete(sandbox)
+            if not self._retain_sandbox:
+                client.delete(sandbox)

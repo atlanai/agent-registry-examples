@@ -22,6 +22,7 @@ the governed review returns `changes_requested` without applying the patch.
 | [PR review agent](agents/pr-review-agent/) | LangGraph entrypoint, immutable Registry identity, Daytona environment |
 | [Kiro PR review agent](agents/kiro-pr-review-agent/) | Headless Kiro implementation with read-only discovery and skill-context authority |
 | [Engineering PR review agent](agents/engineering-pr-review-agent/) | Live Engineering identity used by the multi-case Daytona acceptance suite |
+| [Engineering LangGraph agent](agents/engineering-langgraph-pr-review-agent/) | Independent SDK-instrumented implementation running in its own Daytona sandbox |
 | [Trace improver](agents/trace-improver/) | Proposal-only agent that learns from version-scoped traces |
 | [Secure review skill](skills/secure-pr-review/) | Git-authored policy published to Registry |
 | [Test impact skill](skills/test-impact-analysis/) | Maps changed behavior to focused regression coverage |
@@ -126,6 +127,15 @@ The latest three runs also carry governed Visitor `visitor_01m1prfbcqe0raj9mfqq8
 as **Rohan Goel** in Agent Usage.
 The live sandbox is `engineering-pr-review-live-20260904`
 (`72a2018b-d1d0-4e8b-801b-da857a71a727`).
+
+The independent Engineering LangGraph identity is
+`agent_01m1q17jwzfv8b6fmg75x08z0g`. Its retained Daytona sandbox
+`engineering-langgraph-pr-review-live-20260904`
+(`b540ee5f-f318-4bc0-aaf8-c91c47455a1e`) produced trace
+`b56bbf54bc1d40529b9b7b4322396d02`, Session
+`session_01m1q1grq2etr972vtgxmhwd46`, and Output
+`output_01m1q1gtjgexr81w66bz4tr69y`. The trace contains the SDK root, three named Skill spans,
+and five LangGraph lifecycle spans; all three Skill facades passed read-back.
 
 For the 30-day customer view, the factory also publishes a clearly labeled historical replay
 series, `customer-demo-30d-v1`. It adds 16 `demo.backfill=true` traces across nine earlier dates.

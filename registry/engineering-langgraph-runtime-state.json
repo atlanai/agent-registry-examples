@@ -1,0 +1,29 @@
+{
+  "workspace_id": "workspace_01m1dtasngfk08s4xydm62ewdw",
+  "provider_id": "agent_provider_01m1pn17zyfxgtdde2mwwwff4w",
+  "framework_ids": {
+    "langgraph": "agent_framework_01m1dsc2ysfn8s1h2be931sarw"
+  },
+  "environment_ids": {
+    "daytona-sdk-pr-review": "agent_environment_01m1q154b9fy0rtmyzgpd0mxtx"
+  },
+  "agent_ids": {
+    "pr-review-agent": "agent_01m1q17jwzfv8b6fmg75x08z0g"
+  },
+  "run": {
+    "decision": "approve",
+    "finding_count": 0,
+    "output_id": "output_01m1q1gtjgexr81w66bz4tr69y",
+    "session_id": "session_01m1q1grq2etr972vtgxmhwd46",
+    "trace_id": "b56bbf54bc1d40529b9b7b4322396d02"
+  },
+  "sandbox": {
+    "id": "b540ee5f-f318-4bc0-aaf8-c91c47455a1e",
+    "lifecycle": "retained_for_demo",
+    "name": "engineering-langgraph-pr-review-live-20260904"
+  },
+  "visitor": {
+    "id": "visitor_01m1prfbcqe0raj9mfqq88mwyd",
+    "display_name": "Rohan Goel"
+  }
+}

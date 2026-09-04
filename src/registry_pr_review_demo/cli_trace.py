@@ -417,12 +417,19 @@ SDK_ALLOWED_ATTRIBUTE_NAMES = {
     "atlan.skill.source_digest",
     "atlan.skill.version",
     "atlan.span.type",
+    "atlan.visitor.id",
     "daytona.sandbox.id",
     "demo.eval.case_id",
     "demo.eval.expected_decision",
     "git.commit.sha",
     "github.pull_request.number",
     "github.repository",
+    "gen_ai.tool.name",
+    "gen_ai.tool.type",
+    "input.mime_type",
+    "input.value",
+    "output.mime_type",
+    "output.value",
     "review.decision",
     "review.finding_count",
     "review.matched_rule_ids",
@@ -475,7 +482,7 @@ def build_sdk_otlp_payload(spans: Sequence[object]) -> dict[str, Any]:
             {
                 "resource": {
                     "attributes": [
-                        _string_attribute("service.name", "pr-review-agent"),
+                        _string_attribute("service.name", "engineering-langgraph-pr-review-agent"),
                         _string_attribute("telemetry.sdk.language", "atlan-ai-python-sdk"),
                     ]
                 },

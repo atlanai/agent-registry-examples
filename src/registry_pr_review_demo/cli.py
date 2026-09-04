@@ -269,6 +269,9 @@ def _run_sdk(args: argparse.Namespace) -> int:
     )
     package = _local_skill_package(project_root, reference)
     state = _read_json(cast(Path, args.state))
+    workspace_id = state.get("workspace_id")
+    if not isinstance(workspace_id, str) or not workspace_id.startswith("workspace_"):
+        raise RuntimeError("Registry state is missing the workspace identity")
     agent_ids = _mapping_value(state.get("agent_ids"), "agent_ids")
     agent_id = agent_ids.get("pr-review-agent")
     provider_id = state.get("provider_id")
@@ -288,11 +291,23 @@ def _run_sdk(args: argparse.Namespace) -> int:
         if run_id != "local"
         else f"https://github.com/{repository}/commit/{commit_sha}"
     )
+    agent_evidence: dict[str, object] = {
+        "agent_id": agent_id,
+        "provider_id": provider_id,
+        "environment_id": environment_id,
+        "external_session_id": f"github-{run_id}-langgraph-review",
+        "output_url": output_url,
+    }
+    raw_visitor = state.get("visitor")
+    if isinstance(raw_visitor, dict):
+        visitor_id = cast(dict[object, object], raw_visitor).get("id")
+        if isinstance(visitor_id, str) and visitor_id.startswith("visitor_"):
+            agent_evidence["visitor_id"] = visitor_id
     sdk_wheel = project_root / "vendor/atlan-ai/atlan_ai-0.1.0-py3-none-any.whl"
     secret_name = os.environ.get("DAYTONA_SDK_AGENT_SECRET", "pr-review-agent-key")
     runtime_agent_key = os.environ.get("ATLAN_RUNTIME_AGENT_KEY")
     runtime_env_vars = {
-        "ATLAN_WORKSPACE_ID": DATA_WORKSPACE_ID,
+        "ATLAN_WORKSPACE_ID": workspace_id,
         "ATLAN_BASE_URL": "https://agentgateway.atlan.engineering",
         "ATLANAI_GATEWAY_URL": "https://agentgateway.atlan.engineering",
         "ATLAN_TRACE_CONTENT": "false",
@@ -316,13 +331,7 @@ def _run_sdk(args: argparse.Namespace) -> int:
             env_vars=runtime_env_vars,
             payload_overrides={
                 "skills": skills,
-                "agent_evidence": {
-                    "agent_id": agent_id,
-                    "provider_id": provider_id,
-                    "environment_id": environment_id,
-                    "external_session_id": f"github-{run_id}-langgraph-review",
-                    "output_url": output_url,
-                },
+                "agent_evidence": agent_evidence,
                 "attributes": {
                     "github.repository": repository,
                     "github.run_id": run_id,

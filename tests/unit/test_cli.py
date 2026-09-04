@@ -253,6 +253,7 @@ def test_run_sdk_wires_final_agent_and_three_skill_fingerprints(
     state.write_text(
         json.dumps(
             {
+                "workspace_id": "workspace_demo",
                 "provider_id": "agent_provider_demo",
                 "environment_ids": {"daytona-sdk-pr-review": "agent_environment_demo"},
                 "agent_ids": {"pr-review-agent": "agent_demo"},
@@ -304,6 +305,7 @@ def test_run_sdk_wires_final_agent_and_three_skill_fingerprints(
     assert exit_code == 0
     assert observed["secrets"] is None
     env_vars = cast(dict[str, str], observed["env_vars"])
+    assert env_vars["ATLAN_WORKSPACE_ID"] == "workspace_demo"
     assert env_vars["ATLANAI_TOKEN"] == "agent-test-token"
     overrides = cast(dict[str, object], observed["payload_overrides"])
     assert len(cast(list[object], overrides["skills"])) == 3

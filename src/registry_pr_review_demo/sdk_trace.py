@@ -27,6 +27,11 @@ class SdkTraceRun:
         self.root.otel_span.set_attribute("review.finding_count", len(result.findings))
         if matched_rules:
             self.root.otel_span.set_attribute("review.matched_rule_ids", matched_rules)
+        self.root.otel_span.set_attribute(
+            "output.value",
+            f"Decision: {result.decision.value}. Findings: {len(result.findings)}.",
+        )
+        self.root.otel_span.set_attribute("output.mime_type", "text/plain")
         self.root.score_trace(
             "review_decision",
             data_type="CATEGORICAL",
@@ -50,6 +55,7 @@ class SdkReviewTracer:
         environment_id: str,
         external_session_id: str,
         sandbox_id: str,
+        visitor_id: str | None = None,
     ) -> Generator[SdkTraceRun, None, None]:
         if not fingerprints:
             raise ValueError("SDK review requires at least one verified skill")
@@ -78,9 +84,20 @@ class SdkReviewTracer:
             root.otel_span.set_attribute(
                 "demo.eval.expected_decision", evaluation.expected_decision.value
             )
+            root.otel_span.set_attribute(
+                "input.value",
+                "Review the customer-neutral pull-request fixture with all three governed Skills.",
+            )
+            root.otel_span.set_attribute("input.mime_type", "text/plain")
+            if visitor_id is not None:
+                root.otel_span.set_attribute("atlan.visitor.id", visitor_id)
             spans: list[atlan_ai.AtlanSpan] = []
             for skill_id, fingerprint in fingerprints:
-                with self._client.start_as_current_span("review.skill", as_type="tool") as skill:
+                with self._client.start_as_current_span(
+                    f"execute_tool {fingerprint.name}", as_type="tool"
+                ) as skill:
+                    skill.otel_span.set_attribute("gen_ai.tool.name", fingerprint.name)
+                    skill.otel_span.set_attribute("gen_ai.tool.type", "skill")
                     skill.otel_span.set_attribute("atlan.registry.skill.id", skill_id)
                     skill.otel_span.set_attribute("atlan.skill.id", skill_id)
                     skill.otel_span.set_attribute("atlan.skill.name", fingerprint.name)
@@ -97,5 +114,11 @@ class SdkReviewTracer:
                         "atlan.skill.skillmd_sha256", fingerprint.skillmd_sha256
                     )
                     skill.otel_span.set_attribute("atlan.skill.fingerprint_source", "registry")
+                    skill.otel_span.set_attribute("input.value", f"{fingerprint.name} fingerprint")
+                    skill.otel_span.set_attribute("input.mime_type", "text/plain")
+                    skill.otel_span.set_attribute("output.value", "fingerprint_verified")
+                    skill.otel_span.set_attribute("output.mime_type", "text/plain")
+                    if visitor_id is not None:
+                        skill.otel_span.set_attribute("atlan.visitor.id", visitor_id)
                     spans.append(skill)
             yield SdkTraceRun(root=root, skills=tuple(spans), trace_id=trace_id)

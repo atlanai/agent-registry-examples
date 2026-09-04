@@ -117,6 +117,9 @@ def run_sdk_job(raw_payload: Mapping[str, object], *, client: AtlanAI) -> dict[s
         environment_id=_string(evidence, "environment_id"),
         external_session_id=_string(evidence, "external_session_id"),
         sandbox_id=_string(attributes, "daytona.sandbox.id"),
+        visitor_id=(
+            _string(evidence, "visitor_id") if evidence.get("visitor_id") is not None else None
+        ),
     ) as trace_run:
         result = agent.review(request, reference, callbacks=[CallbackHandler()])
         trace_run.complete(result)
@@ -460,7 +463,10 @@ def main() -> int:
             client.flush()
         finally:
             client.shutdown()
-        receipt = OtlpPayloadSubmitter(workspace_id=DATA_WORKSPACE_ID).submit(
+        workspace_id = os.environ.get("ATLAN_WORKSPACE_ID", DATA_WORKSPACE_ID)
+        if not workspace_id.startswith("workspace_"):
+            raise ValueError("SDK trace mode requires a Registry workspace id")
+        receipt = OtlpPayloadSubmitter(workspace_id=workspace_id).submit(
             build_sdk_otlp_payload(exporter.get_finished_spans())
         )
         if receipt.trace_id != _string(result, "trace_id"):
@@ -491,6 +497,9 @@ def main() -> int:
             assistant_message=(
                 f"Decision: {_string(result, 'decision')}. "
                 f"Recorded {len(_sequence(result.get('findings'), 'findings'))} findings."
+            ),
+            visitor_id=(
+                _string(evidence, "visitor_id") if evidence.get("visitor_id") is not None else None
             ),
             runtime="langgraph",
         )

@@ -1,0 +1,23 @@
+{
+  "secure-pr-review": {
+    "id": "skill_01m1pn0115ee19gjbzdjxdrady",
+    "version": 1,
+    "source_digest": "83f39a1bab52cee32b4fbaea93ae148cd9000d05e27158bfec7c09f1633c893b",
+    "semantic_version": "0.1.1",
+    "skillmd_sha256": "c13d71605ea8470bed0d1fe655f170b24af20c408bf521ab39876ede1882705e"
+  },
+  "test-impact-analysis": {
+    "id": "skill_01m1pn011df01a85dyc5ztjk5h",
+    "version": 1,
+    "source_digest": "95b0083f7c3a91dd82a0a89a748c2ea7af5dff1427bca79c79fb895a31f1e359",
+    "semantic_version": "0.1.1",
+    "skillmd_sha256": "dd16ce79ef28b56b7939b36c6569765380b9330316974cc2899cefd2ac5e35c5"
+  },
+  "review-evidence-summary": {
+    "id": "skill_01m1pn0110fz9b869ddyc00sh6",
+    "version": 1,
+    "source_digest": "1355609f9d06114e2291844dca9bbf4b3356bcd521ea58f71be804c85d56395c",
+    "semantic_version": "0.1.1",
+    "skillmd_sha256": "47034e172435063f3fa9a43c4d0ae242691dae518e453aa89f9a112603e625a4"
+  }
+}

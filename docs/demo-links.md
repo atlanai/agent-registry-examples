@@ -37,6 +37,8 @@ Agent Registry is currently a desktop/deep-link surface. Paste these links into 
 ### Current Engineering demo
 
 - Engineering PR Review Agent: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx`
+- Engineering LangGraph Agent: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1q17jwzfv8b6fmg75x08z0g`
+- LangGraph SDK trace: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1q17jwzfv8b6fmg75x08z0g?tab=overview&agentTab=usage&run=b56bbf54bc1d40529b9b7b4322396d02&view=trace`
 - Risky regression trace: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx?tab=overview&agentTab=usage&run=bfd53094fbfcacd11c1b8191f763d531&view=trace`
 - Safe change trace: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx?tab=overview&agentTab=usage&run=c3d5d56562cd46e1b7d23ac5a8a2c6b6&view=trace`
 - SQL formatting trace: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx?tab=overview&agentTab=usage&run=a483ab6431a8c8a2356cd64e17355eaf&view=trace`
@@ -52,6 +54,10 @@ Agent Registry is currently a desktop/deep-link surface. Paste these links into 
 Current sandbox: `engineering-pr-review-live-20260904`
 (`72a2018b-d1d0-4e8b-801b-da857a71a727`). It contains the pinned Kiro runtime, three exact Skill
 bundles, three synthetic PR fixtures, and the Agent-authenticated Atlan trace worker.
+
+LangGraph sandbox: `engineering-langgraph-pr-review-live-20260904`
+(`b540ee5f-f318-4bc0-aaf8-c91c47455a1e`). It is retained for the demo and contains the pinned
+Atlan SDK wheel, LangGraph runtime, worker, and Agent credential mapping.
 
 The historical Kiro sandbox has been deleted. Use the dashboard and the walkthrough screenshot for
 provider evidence; do not present the old sandbox ID as a live link.

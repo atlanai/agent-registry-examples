@@ -1,0 +1,19 @@
+schema_version: 1
+name: engineering-langgraph-pr-review-agent
+display_name: Engineering LangGraph PR Review Agent
+description: Runs a deterministic LangGraph review in Daytona and sends Agent-authenticated SDK traces to Atlan.
+agent_framework_id: agent_framework_01m1dsc2ysfn8s1h2be931sarw
+agent_provider_id: agent_provider_01m1pn17zyfxgtdde2mwwwff4w
+instructions: >-
+  Review the supplied customer-neutral pull-request fixture in read-only mode.
+  Apply secure-pr-review, test-impact-analysis, and review-evidence-summary,
+  then emit an Agent-authenticated Atlan SDK trace, Session, and Output.
+  Never execute the patch, modify Git, expose credentials, or include raw source
+  and diff bodies in telemetry.
+max_step_count: 8
+tools: []
+associations:
+  skills:
+    - path: skills/secure-pr-review
+    - path: skills/test-impact-analysis
+    - path: skills/review-evidence-summary
