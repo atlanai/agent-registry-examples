@@ -112,8 +112,10 @@ def test_kiro_cli_trace_uses_rest_with_agent_skills_and_sanitized_tools(
         estimated_cost_usd=0.006887822328358208,
         assistant_response="Changes requested with one verified finding.",
         visitor_id="visitor_demo",
+        start_time_ns=1_000,
+        end_time_ns=2_000,
     )
-    payload = build_kiro_otlp_payload(record, start_time_ns=1_000, end_time_ns=2_000)
+    payload = build_kiro_otlp_payload(record)
     spans = payload["resourceSpans"][0]["scopeSpans"][0]["spans"]
     assert len(spans) == 5
     root_attributes = {
@@ -133,6 +135,8 @@ def test_kiro_cli_trace_uses_rest_with_agent_skills_and_sanitized_tools(
     assert spans[2]["name"] == "chat kiro-auto request"
     assert spans[3]["name"] == "execute_tool secure-pr-review"
     assert spans[4]["name"] == "chat kiro-auto final"
+    assert spans[0]["startTimeUnixNano"] == "1000"
+    assert spans[0]["endTimeUnixNano"] == "2000"
     assert root_attributes["atlan.agent.id"] == "agent_kiro"
     assert root_attributes["atlan.visitor.id"] == "visitor_demo"
     for span in spans:

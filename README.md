@@ -127,6 +127,12 @@ as **Rohan Goel** in Agent Usage.
 The live sandbox is `engineering-pr-review-live-20260904`
 (`72a2018b-d1d0-4e8b-801b-da857a71a727`).
 
+For the 30-day customer view, the factory also publishes a clearly labeled historical replay
+series, `customer-demo-30d-v1`. It adds 16 `demo.backfill=true` traces across nine earlier dates.
+Atlan now shows 23 runs with a visible time-series curve; the replay records retain the same Agent,
+Visitor, Skill fingerprints, Session messages, Outputs, tokens, and costs as the live trace shape.
+They are demo telemetry, not claims that Kiro executed on those historical dates.
+
 The checked-in [Registry inventory](docs/registry-inventory.md) records the verified historical
 workspace objects. The demo evidence includes:
 

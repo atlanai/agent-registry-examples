@@ -137,6 +137,8 @@ Open the PR Review Agent, then the Kiro PR Review Agent. On each profile:
 5. open a trace only when a completed live acceptance run is present.
 6. in Usage, show **Visitors (1) → Rohan Goel** and explain that Visitor identity is independent
    from Agent ownership.
+7. keep the 30-day range selected and show the populated usage curve. State explicitly that the
+   earlier points are labeled historical replays; the newest three are live Daytona/Kiro runs.
 
 The final demo identities are:
 
@@ -190,6 +192,10 @@ without raw code or diff content. Then use Usage to compare an approval against 
 
 The Engineering Kiro lane is ready for the live walkthrough. Keep the historical LangGraph Usage
 tab out until its current Agent-authenticated telemetry acceptance also passes.
+
+The 30-day Usage view includes backfill series `customer-demo-30d-v1`: 16 labeled replay traces
+across nine dates, plus seven current-day traces. The resulting daily run counts are
+`1, 2, 1, 3, 2, 1, 3, 2, 1, 7`. Never describe the first 16 as historical live executions.
 
 ## Useful links
 

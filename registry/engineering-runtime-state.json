@@ -4,6 +4,22 @@
     "name": "engineering-pr-review-agent",
     "workspace_id": "workspace_01m1dtasngfk08s4xydm62ewdw"
   },
+  "backfill": {
+    "date_buckets": [
+      {"count": 1, "date": "2026-08-07"},
+      {"count": 2, "date": "2026-08-10"},
+      {"count": 1, "date": "2026-08-13"},
+      {"count": 3, "date": "2026-08-16"},
+      {"count": 2, "date": "2026-08-19"},
+      {"count": 1, "date": "2026-08-22"},
+      {"count": 3, "date": "2026-08-25"},
+      {"count": 2, "date": "2026-08-28"},
+      {"count": 1, "date": "2026-08-31"}
+    ],
+    "label_attribute": "demo.backfill=true",
+    "run_count": 16,
+    "series": "customer-demo-30d-v1"
+  },
   "environment_id": "agent_environment_01m1pn1qw6e3hr8v0emnb1b6nh",
   "framework_id": "agent_framework_01m1pn17rvef0b8bqtf3k1v96f",
   "provider_id": "agent_provider_01m1pn17zyfxgtdde2mwwwff4w",

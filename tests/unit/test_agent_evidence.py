@@ -58,6 +58,7 @@ def test_agent_evidence_creates_lineage_and_verifies_both_trace_facades() -> Non
         assistant_message="Decision: changes_requested. One finding.",
         input_tokens=5291,
         visitor_id="visitor_demo",
+        source_created_at="2026-08-08T14:15:00Z",
     )
 
     assert (session_id, output_id) == ("session_demo", "output_demo")
@@ -69,6 +70,7 @@ def test_agent_evidence_creates_lineage_and_verifies_both_trace_facades() -> Non
     assert session_body["external_session_id"] == "github-123-kiro-review"
     assert session_body["message_count"] == 2
     assert session_body["visitor_id"] == "visitor_demo"
+    assert session_body["source_created_at"] == "2026-08-08T14:15:00Z"
     message_bodies = [
         body
         for method, url, body in requests
@@ -79,6 +81,11 @@ def test_agent_evidence_creates_lineage_and_verifies_both_trace_facades() -> Non
         "assistant",
     ]
     assert [body["sequence_number"] for body in message_bodies if body is not None] == [0, 1]
+    assert all(
+        body["source_created_at"] == "2026-08-08T14:15:00Z"
+        for body in message_bodies
+        if body is not None
+    )
     assert output_body is not None and output_body["session_id"] == "session_demo"
     trace_urls = {url for method, url, _ in requests if method == "GET" and "/traces/" in url}
     assert trace_urls == {

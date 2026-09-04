@@ -76,6 +76,7 @@ class AgentEvidenceClient:
         assistant_message: str,
         input_tokens: int = 0,
         visitor_id: str | None = None,
+        source_created_at: str | None = None,
         runtime: str = "kiro",
     ) -> tuple[str, str]:
         display_runtime = "LangGraph" if runtime == "langgraph" else "Kiro"
@@ -101,37 +102,44 @@ class AgentEvidenceClient:
             if not visitor_id.startswith("visitor_"):
                 raise ValueError("Visitor identity must be a Registry visitor id")
             session_body["visitor_id"] = visitor_id
+        if source_created_at is not None:
+            session_body["source_created_at"] = source_created_at
         session = self._request(
             "POST",
             "/agent/v1/sessions",
             session_body,
         )
         session_id = _string(session, "id")
+        user_message_body: dict[str, object] = {
+            "name": _artifact_name("user-request", external_session_id),
+            "display_name": "Review request",
+            "workspace_id": self._workspace_id,
+            "sequence_number": 0,
+            "message_role": "user",
+            "content": user_message,
+        }
+        assistant_message_body: dict[str, object] = {
+            "name": _artifact_name("assistant-response", external_session_id),
+            "display_name": "Review decision",
+            "workspace_id": self._workspace_id,
+            "sequence_number": 1,
+            "message_role": "assistant",
+            "content": assistant_message,
+            "model": model_id,
+            "usage": {"input_tokens": input_tokens, "output_tokens": 0},
+        }
+        if source_created_at is not None:
+            user_message_body["source_created_at"] = source_created_at
+            assistant_message_body["source_created_at"] = source_created_at
         self._request(
             "POST",
             f"/agent/v1/sessions/{session_id}/messages",
-            {
-                "name": _artifact_name("user-request", external_session_id),
-                "display_name": "Review request",
-                "workspace_id": self._workspace_id,
-                "sequence_number": 0,
-                "message_role": "user",
-                "content": user_message,
-            },
+            user_message_body,
         )
         self._request(
             "POST",
             f"/agent/v1/sessions/{session_id}/messages",
-            {
-                "name": _artifact_name("assistant-response", external_session_id),
-                "display_name": "Review decision",
-                "workspace_id": self._workspace_id,
-                "sequence_number": 1,
-                "message_role": "assistant",
-                "content": assistant_message,
-                "model": model_id,
-                "usage": {"input_tokens": input_tokens, "output_tokens": 0},
-            },
+            assistant_message_body,
         )
         output = self._request(
             "POST",

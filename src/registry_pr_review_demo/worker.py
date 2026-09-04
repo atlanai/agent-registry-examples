@@ -229,6 +229,8 @@ def run_kiro_trace_job(
         "git.commit.sha",
         "daytona.sandbox.id",
         "review.case_id",
+        "demo.backfill",
+        "demo.backfill.series",
     }
     attributes = {
         key: _string_value(value, key)
@@ -254,6 +256,16 @@ def run_kiro_trace_job(
     workspace_id = os.environ.get("ATLAN_WORKSPACE_ID", DATA_WORKSPACE_ID)
     if not workspace_id.startswith("workspace_"):
         raise ValueError("Kiro trace mode requires a Registry workspace id")
+    start_time_ns = raw_payload.get("source_start_time_ns")
+    end_time_ns = raw_payload.get("source_end_time_ns")
+    if start_time_ns is not None and (
+        isinstance(start_time_ns, bool) or not isinstance(start_time_ns, int) or start_time_ns <= 0
+    ):
+        raise ValueError("Kiro trace source start time must be a positive integer")
+    if end_time_ns is not None and (
+        isinstance(end_time_ns, bool) or not isinstance(end_time_ns, int) or end_time_ns <= 0
+    ):
+        raise ValueError("Kiro trace source end time must be a positive integer")
     receipt = (submitter or KiroCliTraceSubmitter(workspace_id=workspace_id)).submit(
         KiroCliTraceRecord(
             session_id=_string(raw_payload, "session_id"),
@@ -269,6 +281,8 @@ def run_kiro_trace_job(
             estimated_cost_usd=credits_used * 0.02,
             assistant_response=assistant_response,
             visitor_id=visitor_id,
+            start_time_ns=start_time_ns,
+            end_time_ns=end_time_ns,
         )
     )
     if not receipt.accepted:
@@ -401,6 +415,10 @@ def main() -> int:
         visitor = _mapping(typed_payload.get("visitor", {}), "visitor")
         raw_visitor_id = visitor.get("id")
         visitor_id = raw_visitor_id if isinstance(raw_visitor_id, str) else None
+        source_created_at_raw = typed_payload.get("source_created_at")
+        source_created_at = (
+            source_created_at_raw if isinstance(source_created_at_raw, str) else None
+        )
         session_id, output_id = CliAgentEvidenceClient.from_environment().record_and_verify(
             agent_id=_string(typed_payload, "agent_id"),
             provider_id=_string(typed_payload, "provider_id"),
@@ -423,6 +441,7 @@ def main() -> int:
             assistant_message=_string(result, "assistant_response"),
             input_tokens=_integer(result, "kiro_tool_tokens"),
             visitor_id=visitor_id,
+            source_created_at=source_created_at,
         )
         result["session_id"] = session_id
         result["output_id"] = output_id

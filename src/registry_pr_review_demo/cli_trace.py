@@ -55,6 +55,8 @@ class KiroCliTraceRecord:
     estimated_cost_usd: float
     assistant_response: str
     visitor_id: str | None = None
+    start_time_ns: int | None = None
+    end_time_ns: int | None = None
 
 
 def _hex_id(seed: str, length: int) -> str:
@@ -156,8 +158,22 @@ def build_kiro_otlp_payload(
     start_time_ns: int | None = None,
     end_time_ns: int | None = None,
 ) -> dict[str, Any]:
-    started = start_time_ns if start_time_ns is not None else time.time_ns()
-    ended = end_time_ns if end_time_ns is not None else started + 1_000_000
+    started = (
+        start_time_ns
+        if start_time_ns is not None
+        else record.start_time_ns
+        if record.start_time_ns is not None
+        else time.time_ns()
+    )
+    ended = (
+        end_time_ns
+        if end_time_ns is not None
+        else record.end_time_ns
+        if record.end_time_ns is not None
+        else started + 1_000_000
+    )
+    if ended <= started:
+        raise ValueError("Kiro trace end time must follow its start time")
     trace_id = _hex_id(record.session_id, 32)
     root_span_id = _hex_id(f"{record.session_id}:root", 16)
     turn_span_id = _hex_id(f"{record.session_id}:turn:1", 16)

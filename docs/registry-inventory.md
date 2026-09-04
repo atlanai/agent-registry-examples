@@ -41,6 +41,17 @@ stored.
 Live Daytona sandbox: `engineering-pr-review-live-20260904`
 (`72a2018b-d1d0-4e8b-801b-da857a71a727`).
 
+### Thirty-day historical replay
+
+Backfill series `customer-demo-30d-v1` contains 16 traces across 7 August–31 August 2026. Every
+trace carries `demo.backfill=true`, `demo.backfill.series=customer-demo-30d-v1`, the Engineering
+Agent ID, all three Skill fingerprints, and Visitor `Rohan Goel`. Each also has a two-message
+Session and linked Output. These are synthetic historical replays for demonstrating time-series
+analytics, not historical Kiro execution claims.
+
+An authenticated `time_series` stats query returned daily trace counts
+`1, 2, 1, 3, 2, 1, 3, 2, 1, 7`, for 23 total runs including the seven current-day traces.
+
 ## Historical Data registration
 
 This file records verified live state only. Planned ids remain blank until create plus authenticated

@@ -41,6 +41,8 @@ def test_kiro_trace_worker_submits_agent_and_skill_evidence_through_cli(
     payload = {
         "agent_id": "agent_kiro",
         "visitor": {"id": "visitor_demo"},
+        "source_start_time_ns": 1_000,
+        "source_end_time_ns": 2_000,
         "session_id": "session_kiro",
         "skills": skills,
         "tool_names": ["read", "grep"],
@@ -75,6 +77,8 @@ def test_kiro_trace_worker_submits_agent_and_skill_evidence_through_cli(
     assert submitter.record is not None
     assert submitter.record.agent_id == "agent_kiro"
     assert submitter.record.visitor_id == "visitor_demo"
+    assert submitter.record.start_time_ns == 1_000
+    assert submitter.record.end_time_ns == 2_000
     assert submitter.record.tool_names == ("read", "grep")
     assert submitter.record.model == "kiro-auto"
     assert submitter.record.input_tokens == 5291
