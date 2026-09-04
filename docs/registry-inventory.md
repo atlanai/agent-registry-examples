@@ -23,15 +23,20 @@ relationships and every live trace were read back from the API after creation.
 
 | Case | Decision | Findings | Trace | Session | Output |
 |---|---|---:|---|---|---|
-| `risky-injection-regression` | `changes_requested` | 2 | `9dd6c7487b17b23847379f21a8808e67` | `session_01m1pqe910fe8v9eptkqwnebs3` | `output_01m1pqe9nefdrvyqbrekfrgdvt` |
-| `safe-parameterized-change` | `approve` | 0 | `aa8be6e221561f60ee865a7e0193e4cb` | `session_01m1pqg2mkfchb1k5m9j5bnqkd` | `output_01m1pqg3fhe8s9kfv7d3s8vfcf` |
-| `sql-format-regression` | `changes_requested` | 1 | `35d5dac29416525e29e46cd4dadf11a8` | `session_01m1pqj1bffv9v3ptvy892szc3` | `output_01m1pqj1z0etsarqvqk79j6wva` |
+| `risky-injection-regression` | `changes_requested` | 2 | `bfd53094fbfcacd11c1b8191f763d531` | `session_01m1prnfj4fvrr248gk76cfty7` | `output_01m1prng7zf7r8s9hk61ez6rw6` |
+| `safe-parameterized-change` | `approve` | 0 | `c3d5d56562cd46e1b7d23ac5a8a2c6b6` | `session_01m1prq3dzfp8ajgwd54xnz7ns` | `output_01m1prq43df10vy3tj2exk11qr` |
+| `sql-format-regression` | `changes_requested` | 1 | `a483ab6431a8c8a2356cd64e17355eaf` | `session_01m1prsennfngtqkvtzz7jaqs0` | `output_01m1prsfa8ed1r5wz0cqkqkg63` |
 
 All three are complete `software_factory.pr_review` traces with seven ordered spans, 5,063 observed
 Kiro tool/context tokens, stored sanitized prompt and response content, three named Skill spans,
 two Session messages, one linked Output, and successful Agent plus three-Skill facade read-back.
-Credit-derived plan-equivalent costs are USD 0.013226, USD 0.012968, and USD 0.013641; the Kiro Free
+Credit-derived plan-equivalent costs are USD 0.014101, USD 0.012529, and USD 0.017927; the Kiro Free
 plan's billed cost remains USD 0.
+
+All three current Sessions snapshot Visitor `visitor_01m1prfbcqe0raj9mfqq88mwyd` as
+**Rohan Goel**, with identity source `software-factory-demo`, external id `rohan-goel`, and type
+`human`. The visitor was identified once through `POST /agent/v1/visitors/identify`; no email was
+stored.
 
 Live Daytona sandbox: `engineering-pr-review-live-20260904`
 (`72a2018b-d1d0-4e8b-801b-da857a71a727`).

@@ -75,30 +75,36 @@ class AgentEvidenceClient:
         user_message: str,
         assistant_message: str,
         input_tokens: int = 0,
+        visitor_id: str | None = None,
         runtime: str = "kiro",
     ) -> tuple[str, str]:
         display_runtime = "LangGraph" if runtime == "langgraph" else "Kiro"
+        session_body: dict[str, object] = {
+            "name": _artifact_name(f"{runtime}-pr-review", external_session_id),
+            "display_name": f"{display_runtime} PR Review",
+            "description": f"Sanitized review evidence: {decision}.",
+            "workspace_id": self._workspace_id,
+            "subject_kind": "agent",
+            "subject_id": agent_id,
+            "session_status": "completed",
+            "external_session_id": external_session_id,
+            "remote_session_id": sandbox_id,
+            "agent_provider_id": provider_id,
+            "environment_id": environment_id,
+            "model_id": model_id,
+            "stop_reason": "final_answer",
+            "title": user_message[:160],
+            "message_count": 2,
+            "usage": {"input_tokens": input_tokens, "output_tokens": 0},
+        }
+        if visitor_id is not None:
+            if not visitor_id.startswith("visitor_"):
+                raise ValueError("Visitor identity must be a Registry visitor id")
+            session_body["visitor_id"] = visitor_id
         session = self._request(
             "POST",
             "/agent/v1/sessions",
-            {
-                "name": _artifact_name(f"{runtime}-pr-review", external_session_id),
-                "display_name": f"{display_runtime} PR Review",
-                "description": f"Sanitized review evidence: {decision}.",
-                "workspace_id": self._workspace_id,
-                "subject_kind": "agent",
-                "subject_id": agent_id,
-                "session_status": "completed",
-                "external_session_id": external_session_id,
-                "remote_session_id": sandbox_id,
-                "agent_provider_id": provider_id,
-                "environment_id": environment_id,
-                "model_id": model_id,
-                "stop_reason": "final_answer",
-                "title": user_message[:160],
-                "message_count": 2,
-                "usage": {"input_tokens": input_tokens, "output_tokens": 0},
-            },
+            session_body,
         )
         session_id = _string(session, "id")
         self._request(
@@ -151,6 +157,8 @@ class AgentEvidenceClient:
         output_readback = self._request("GET", f"/agent/v1/outputs/{output_id}")
         if session_readback.get("subject_id") != agent_id:
             raise RuntimeError("Atlan Session readback lost Agent identity")
+        if visitor_id is not None and session_readback.get("visitor_id") != visitor_id:
+            raise RuntimeError("Atlan Session readback lost Visitor identity")
         if output_readback.get("session_id") != session_id:
             raise RuntimeError("Atlan Output readback lost Session lineage")
         messages = messages_readback.get("items")

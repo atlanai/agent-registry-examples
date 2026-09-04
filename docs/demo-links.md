@@ -37,9 +37,10 @@ Agent Registry is currently a desktop/deep-link surface. Paste these links into 
 ### Current Engineering demo
 
 - Engineering PR Review Agent: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx`
-- Risky regression trace: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx?tab=overview&agentTab=usage&run=9dd6c7487b17b23847379f21a8808e67&view=trace`
-- Safe change trace: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx?tab=overview&agentTab=usage&run=aa8be6e221561f60ee865a7e0193e4cb&view=trace`
-- SQL formatting trace: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx?tab=overview&agentTab=usage&run=35d5dac29416525e29e46cd4dadf11a8&view=trace`
+- Risky regression trace: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx?tab=overview&agentTab=usage&run=bfd53094fbfcacd11c1b8191f763d531&view=trace`
+- Safe change trace: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx?tab=overview&agentTab=usage&run=c3d5d56562cd46e1b7d23ac5a8a2c6b6&view=trace`
+- SQL formatting trace: `atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx?tab=overview&agentTab=usage&run=a483ab6431a8c8a2356cd64e17355eaf&view=trace`
+- Visitor: `visitor_01m1prfbcqe0raj9mfqq88mwyd` (`Rohan Goel`, human)
 - Secure review skill: `atlan://open/orgs/atlan-internal/brain/skill/skill_01m1pn0115ee19gjbzdjxdrady`
 - Test impact skill: `atlan://open/orgs/atlan-internal/brain/skill/skill_01m1pn011df01a85dyc5ztjk5h`
 - Evidence summary skill: `atlan://open/orgs/atlan-internal/brain/skill/skill_01m1pn0110fz9b869ddyc00sh6`

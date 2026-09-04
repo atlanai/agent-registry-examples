@@ -115,13 +115,15 @@ Agent-authenticated Atlan runs:
 
 | Case | Decision | Findings | Tokens | Trace |
 |---|---|---:|---:|---|
-| Injection and SQL regression | `changes_requested` | 2 | 5,063 | `9dd6c7487b17b23847379f21a8808e67` |
-| Safe parameterized change | `approve` | 0 | 5,063 | `aa8be6e221561f60ee865a7e0193e4cb` |
-| SQL formatting regression | `changes_requested` | 1 | 5,063 | `35d5dac29416525e29e46cd4dadf11a8` |
+| Injection and SQL regression | `changes_requested` | 2 | 5,063 | `bfd53094fbfcacd11c1b8191f763d531` |
+| Safe parameterized change | `approve` | 0 | 5,063 | `c3d5d56562cd46e1b7d23ac5a8a2c6b6` |
+| SQL formatting regression | `changes_requested` | 1 | 5,063 | `a483ab6431a8c8a2356cd64e17355eaf` |
 
 Every trace has seven ordered spans: root task, turn, model request, three named Skill calls, and
 model response. Each has stored sanitized input/output, Kiro credit-derived cost, a two-message
 Session, a linked Output, and successful read-back through the Agent plus all three Skill facades.
+The latest three runs also carry governed Visitor `visitor_01m1prfbcqe0raj9mfqq88mwyd`, displayed
+as **Rohan Goel** in Agent Usage.
 The live sandbox is `engineering-pr-review-live-20260904`
 (`72a2018b-d1d0-4e8b-801b-da857a71a727`).
 

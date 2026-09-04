@@ -11,33 +11,33 @@
   "runs": [
     {
       "case_id": "risky-injection-regression",
-      "credits_used": 0.6613029048092869,
+      "credits_used": 0.7050544844112769,
       "decision": "changes_requested",
       "finding_count": 2,
-      "output_id": "output_01m1pqe9nefdrvyqbrekfrgdvt",
-      "session_id": "session_01m1pqe910fe8v9eptkqwnebs3",
+      "output_id": "output_01m1prng7zf7r8s9hk61ez6rw6",
+      "session_id": "session_01m1prnfj4fvrr248gk76cfty7",
       "tool_tokens": 5063,
-      "trace_id": "9dd6c7487b17b23847379f21a8808e67"
+      "trace_id": "bfd53094fbfcacd11c1b8191f763d531"
     },
     {
       "case_id": "safe-parameterized-change",
-      "credits_used": 0.6484146008291873,
+      "credits_used": 0.6264451313432835,
       "decision": "approve",
       "finding_count": 0,
-      "output_id": "output_01m1pqg3fhe8s9kfv7d3s8vfcf",
-      "session_id": "session_01m1pqg2mkfchb1k5m9j5bnqkd",
+      "output_id": "output_01m1prq43df10vy3tj2exk11qr",
+      "session_id": "session_01m1prq3dzfp8ajgwd54xnz7ns",
       "tool_tokens": 5063,
-      "trace_id": "aa8be6e221561f60ee865a7e0193e4cb"
+      "trace_id": "c3d5d56562cd46e1b7d23ac5a8a2c6b6"
     },
     {
       "case_id": "sql-format-regression",
-      "credits_used": 0.6820570089552238,
+      "credits_used": 0.896355236981758,
       "decision": "changes_requested",
       "finding_count": 1,
-      "output_id": "output_01m1pqj1z0etsarqvqk79j6wva",
-      "session_id": "session_01m1pqj1bffv9v3ptvy892szc3",
+      "output_id": "output_01m1prsfa8ed1r5wz0cqkqkg63",
+      "session_id": "session_01m1prsennfngtqkvtzz7jaqs0",
       "tool_tokens": 5063,
-      "trace_id": "35d5dac29416525e29e46cd4dadf11a8"
+      "trace_id": "a483ab6431a8c8a2356cd64e17355eaf"
     }
   ],
   "sandbox": {
@@ -48,5 +48,12 @@
     "skill_01m1pn0115ee19gjbzdjxdrady",
     "skill_01m1pn011df01a85dyc5ztjk5h",
     "skill_01m1pn0110fz9b869ddyc00sh6"
-  ]
+  ],
+  "visitor": {
+    "display_name": "Rohan Goel",
+    "external_id": "rohan-goel",
+    "id": "visitor_01m1prfbcqe0raj9mfqq88mwyd",
+    "identity_source": "software-factory-demo",
+    "type": "human"
+  }
 }

@@ -18,6 +18,7 @@ The proof is inspectable:
 - product code and the proposed patch are separate;
 - three Git-authored skills have immutable Registry IDs and digests;
 - each Agent has its own machine identity and the same three `uses_skill` relationships;
+- the current Kiro runs identify **Rohan Goel** as the human visitor they served;
 - the Kiro and LangGraph runtime paths fail closed when identity or telemetry is incomplete;
 - the trace-improvement Agent proposes changes but cannot publish them.
 
@@ -134,6 +135,8 @@ Open the PR Review Agent, then the Kiro PR Review Agent. On each profile:
 3. verify the three active `uses_skill` edges;
 4. open Sessions and Usage;
 5. open a trace only when a completed live acceptance run is present.
+6. in Usage, show **Visitors (1) → Rohan Goel** and explain that Visitor identity is independent
+   from Agent ownership.
 
 The final demo identities are:
 

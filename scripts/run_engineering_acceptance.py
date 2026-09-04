@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DAYTONA_CONFIG = Path.home() / "Library/Application Support/daytona/config.json"
 SANDBOX_NAME = "engineering-pr-review-live-20260904"
 AGENT_ID = "agent_01m1pn4k5deggsts6h7fvfvcgx"
+VISITOR_ID = "visitor_01m1prfbcqe0raj9mfqq88mwyd"
 PROVIDER_ID = "agent_provider_01m1pn17zyfxgtdde2mwwwff4w"
 ENVIRONMENT_ID = "agent_environment_01m1pn1qw6e3hr8v0emnb1b6nh"
 CASES = (
@@ -89,6 +90,7 @@ def main() -> int:
         payload = {
             "job_type": "kiro_trace",
             "agent_id": AGENT_ID,
+            "visitor": {"id": VISITOR_ID},
             "provider_id": PROVIDER_ID,
             "environment_id": ENVIRONMENT_ID,
             "session_id": external_session_id,

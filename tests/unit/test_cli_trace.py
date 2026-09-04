@@ -111,6 +111,7 @@ def test_kiro_cli_trace_uses_rest_with_agent_skills_and_sanitized_tools(
         credits_used=0.3443911164179104,
         estimated_cost_usd=0.006887822328358208,
         assistant_response="Changes requested with one verified finding.",
+        visitor_id="visitor_demo",
     )
     payload = build_kiro_otlp_payload(record, start_time_ns=1_000, end_time_ns=2_000)
     spans = payload["resourceSpans"][0]["scopeSpans"][0]["spans"]
@@ -133,6 +134,9 @@ def test_kiro_cli_trace_uses_rest_with_agent_skills_and_sanitized_tools(
     assert spans[3]["name"] == "execute_tool secure-pr-review"
     assert spans[4]["name"] == "chat kiro-auto final"
     assert root_attributes["atlan.agent.id"] == "agent_kiro"
+    assert root_attributes["atlan.visitor.id"] == "visitor_demo"
+    for span in spans:
+        assert any(item["key"] == "atlan.visitor.id" for item in span["attributes"])
     assert root_attributes["daytona.sandbox.id"] == "sandbox_demo"
     assert request_attributes["atlan.span.type"] == "llm"
     assert request_attributes["gen_ai.request.model"] == "kiro-auto"

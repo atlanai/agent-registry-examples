@@ -25,7 +25,7 @@ def test_agent_evidence_creates_lineage_and_verifies_both_trace_facades() -> Non
         if path == "/agent/v1/outputs" and request.get_method() == "POST":
             return b'{"id":"output_demo"}'
         if path == "/agent/v1/sessions/session_demo":
-            return b'{"id":"session_demo","subject_id":"agent_demo"}'
+            return b'{"id":"session_demo","subject_id":"agent_demo","visitor_id":"visitor_demo"}'
         if path == "/agent/v1/sessions/session_demo/messages?limit=10&offset=0":
             return b'{"items":[{"seq":0},{"seq":1}],"page":{}}'
         if path == "/agent/v1/sessions/session_demo/messages" and request.get_method() == "POST":
@@ -57,6 +57,7 @@ def test_agent_evidence_creates_lineage_and_verifies_both_trace_facades() -> Non
         user_message="Review this bounded fixture.",
         assistant_message="Decision: changes_requested. One finding.",
         input_tokens=5291,
+        visitor_id="visitor_demo",
     )
 
     assert (session_id, output_id) == ("session_demo", "output_demo")
@@ -67,6 +68,7 @@ def test_agent_evidence_creates_lineage_and_verifies_both_trace_facades() -> Non
     assert session_body is not None and session_body["subject_id"] == "agent_demo"
     assert session_body["external_session_id"] == "github-123-kiro-review"
     assert session_body["message_count"] == 2
+    assert session_body["visitor_id"] == "visitor_demo"
     message_bodies = [
         body
         for method, url, body in requests

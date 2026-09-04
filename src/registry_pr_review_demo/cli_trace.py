@@ -54,6 +54,7 @@ class KiroCliTraceRecord:
     credits_used: float
     estimated_cost_usd: float
     assistant_response: str
+    visitor_id: str | None = None
 
 
 def _hex_id(seed: str, length: int) -> str:
@@ -286,6 +287,13 @@ def build_kiro_otlp_payload(
             "attributes": _kiro_response_chat_attributes(record, seq=response_seq),
         }
     )
+    if record.visitor_id is not None:
+        for span in spans:
+            span_attributes = span.get("attributes")
+            if isinstance(span_attributes, list):
+                cast(list[object], span_attributes).append(
+                    _string_attribute("atlan.visitor.id", record.visitor_id)
+                )
     return {
         "resourceSpans": [
             {

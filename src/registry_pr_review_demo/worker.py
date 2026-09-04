@@ -186,6 +186,12 @@ def run_kiro_trace_job(
     )
     if any(name not in {"read", "grep", "glob", "disclose_context"} for name in tool_names):
         raise ValueError("Kiro trace contains a disallowed tool")
+    visitor = _mapping(raw_payload.get("visitor", {}), "visitor")
+    visitor_id = visitor.get("id")
+    if visitor_id is not None and (
+        not isinstance(visitor_id, str) or not visitor_id.startswith("visitor_")
+    ):
+        raise ValueError("Kiro trace requires a valid Registry visitor id")
     configured: list[tuple[str, SkillFingerprint]] = []
     for raw in _sequence(raw_payload.get("skills"), "skills"):
         skill = _mapping(raw, "skill")
@@ -262,6 +268,7 @@ def run_kiro_trace_job(
             credits_used=credits_used,
             estimated_cost_usd=credits_used * 0.02,
             assistant_response=assistant_response,
+            visitor_id=visitor_id,
         )
     )
     if not receipt.accepted:
@@ -391,6 +398,9 @@ def main() -> int:
         attributes = _mapping(typed_payload.get("attributes", {}), "attributes")
         result_model = result.get("model")
         model_id = result_model if isinstance(result_model, str) else None
+        visitor = _mapping(typed_payload.get("visitor", {}), "visitor")
+        raw_visitor_id = visitor.get("id")
+        visitor_id = raw_visitor_id if isinstance(raw_visitor_id, str) else None
         session_id, output_id = CliAgentEvidenceClient.from_environment().record_and_verify(
             agent_id=_string(typed_payload, "agent_id"),
             provider_id=_string(typed_payload, "provider_id"),
@@ -412,6 +422,7 @@ def main() -> int:
             ),
             assistant_message=_string(result, "assistant_response"),
             input_tokens=_integer(result, "kiro_tool_tokens"),
+            visitor_id=visitor_id,
         )
         result["session_id"] = session_id
         result["output_id"] = output_id
