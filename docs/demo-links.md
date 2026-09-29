@@ -14,7 +14,7 @@ Open these surfaces in order during the customer walkthrough.
 - [Review evidence skill](https://github.com/atlanai/software-factory-demo/tree/main/skills/review-evidence-summary)
 - [Trace improvement skill](https://github.com/atlanai/software-factory-demo/tree/main/skills/trace-driven-skill-improvement)
 - [Software Factory Review runs](https://github.com/atlanai/software-factory-demo/actions/workflows/software-factory-review.yml)
-- [Atlan SkillSync runs](https://github.com/atlanai/software-factory-demo/actions/workflows/atlan-skill-sync.yml)
+- [Registry Sync runs](https://github.com/atlanai/software-factory-demo/actions/workflows/registry-sync.yml)
 - [Kiro Daytona review runs](https://github.com/atlanai/software-factory-demo/actions/workflows/kiro-daytona-review.yml)
 - [Customer demo walkthrough](https://github.com/atlanai/software-factory-demo/blob/main/docs/customer-demo-walkthrough.md)
 

@@ -22,12 +22,13 @@ capture a new key.
 
 ## Skills
 
-Repository skills are declared in `.atlan/package.json` and published with:
+Repository skills live under `skills/`. The Registry Sync workflow checks them on every pull
+request and publishes them to `workspace_01m0g43eb2fmgbv21dc7ygs7rc` when they merge to `main`.
+Validate one locally with:
 
 ```bash
 atlanai skill validate skills/secure-pr-review
 atlanai skill validate skills/trace-driven-skill-improvement
-atlanai skill publish --workspace workspace_01m0g43eb2fmgbv21dc7ygs7rc
 ```
 
 The trace runner uses `atlanai skill get --version` and `atlanai skill pull --version` to resolve the

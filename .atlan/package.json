@@ -1,9 +1,0 @@
-{
-  "publishConfig": {
-    "workspaces": ["workspace_01m0g43eb2fmgbv21dc7ygs7rc"],
-    "skills": {
-      "paths": ["skills"],
-      "exclude": []
-    }
-  }
-}
