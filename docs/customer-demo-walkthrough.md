@@ -32,7 +32,7 @@ Open these tabs before the call. Keep them in this order.
 4. [Shared skills](https://github.com/atlanai/software-factory-demo/tree/main/skills)
 5. [LangGraph Agent](https://github.com/atlanai/software-factory-demo/tree/main/agents/pr-review-agent)
 6. [Kiro Agent](https://github.com/atlanai/software-factory-demo/tree/main/agents/kiro-pr-review-agent)
-7. [SkillSync workflow](https://github.com/atlanai/software-factory-demo/actions/workflows/atlan-skill-sync.yml)
+7. [Registry Sync workflow](https://github.com/atlanai/software-factory-demo/actions/workflows/registry-sync.yml)
 8. [Daytona sandboxes](https://app.daytona.io/dashboard/sandboxes)
 9. [Engineering PR Review Agent in Atlan](atlan://open/orgs/atlan-internal/brain/agent/agent_01m1pn4k5deggsts6h7fvfvcgx)
 10. [Secure PR Review skill](atlan://open/orgs/atlan-internal/brain/skill/skill_01m1pn0115ee19gjbzdjxdrady)
@@ -95,12 +95,12 @@ governance and evidence contract.
 
 ### 5. Show how Git publishes policy
 
-Open the SkillSync workflow. It runs from `main`, checks out full Git history, and uses the Atlan
-Agent Registry Action. The workflow is pinned to the reviewed commit on
-`fix/installer-digest-v0.1.2`; it does not follow a moving branch at runtime.
+Open the Registry Sync workflow. It publishes from `main`, checks out full Git history, and uses
+the Atlan Agent Registry Action pinned to a reviewed commit; it does not follow a moving branch at
+runtime.
 
-The publishing token is available only to the protected sync job. Pull-request code gets a
-credential-isolated preflight.
+On a pull request the same workflow posts a preflight comment without checking out or running
+pull-request code.
 
 The separate Software Factory Review lane is green and publishes a governed review artifact. It
 does not receive an Agent key or submit telemetry.

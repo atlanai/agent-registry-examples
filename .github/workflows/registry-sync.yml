@@ -1,0 +1,39 @@
+name: Registry Sync
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: registry-sync-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request_target' }}
+
+jobs:
+  registry-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # Pull requests are read through the GitHub API; their code is never checked out.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        if: github.event_name != 'pull_request_target'
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Preflight is on by default: pull requests get preflight, pushes to main publish.
+      # Set preflight: "false" to skip it.
+      - uses: atlanai/agent-registry-action@9aed19c91512a80a7e1563c8345a60a35c4dc8e3 # registry-sync, before v0.3.0
+        with:
+          workspace: workspace_01m0g43eb2fmgbv21dc7ygs7rc
+          artifacts: |
+            skill: ["skills/**"]
+        env:
+          ATLANAI_TOKEN: ${{ secrets.ATLANAI_TOKEN }}

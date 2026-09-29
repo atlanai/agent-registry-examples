@@ -1,7 +1,7 @@
 # Software Factory
 
 [![Software Factory Review](https://github.com/atlanai/software-factory-demo/actions/workflows/software-factory-review.yml/badge.svg)](https://github.com/atlanai/software-factory-demo/actions/workflows/software-factory-review.yml)
-[![Sync skills to Atlan](https://github.com/atlanai/software-factory-demo/actions/workflows/atlan-skill-sync.yml/badge.svg)](https://github.com/atlanai/software-factory-demo/actions/workflows/atlan-skill-sync.yml)
+[![Registry Sync](https://github.com/atlanai/software-factory-demo/actions/workflows/registry-sync.yml/badge.svg)](https://github.com/atlanai/software-factory-demo/actions/workflows/registry-sync.yml)
 [![Kiro PR Review in Daytona](https://github.com/atlanai/software-factory-demo/actions/workflows/kiro-daytona-review.yml/badge.svg)](https://github.com/atlanai/software-factory-demo/actions/workflows/kiro-daytona-review.yml)
 
 This repository is a working software factory. Product code, review agents, engineering skills,
@@ -30,7 +30,7 @@ the governed review returns `changes_requested` without applying the patch.
 | [Improvement skill](skills/trace-driven-skill-improvement/) | Trace contract and bounded patch logic |
 | [Factory control plane](factory/) | Proposed change fixture and deterministic review inputs |
 | [Software Factory Review](https://github.com/atlanai/software-factory-demo/actions/workflows/software-factory-review.yml) | Tests, governed review, trace submission, evidence artifact |
-| [Atlan SkillSync](https://github.com/atlanai/software-factory-demo/actions/workflows/atlan-skill-sync.yml) | Protected-branch publication from GitHub to Registry |
+| [Registry Sync](https://github.com/atlanai/software-factory-demo/actions/workflows/registry-sync.yml) | Pull request preflight and protected-branch publication from GitHub to Registry |
 | [Demo control room](docs/demo-links.md) | GitHub, Registry, trace, agent, and Daytona links in one place |
 | [Customer demo walkthrough](docs/customer-demo-walkthrough.md) | Tab order, talk track, screenshots, and live acceptance gates |
 | [Registry inventory](docs/registry-inventory.md) | Verified live IDs, traces, Outputs, and governance status |
@@ -51,7 +51,7 @@ flowchart LR
     Evidence --> Registry[Atlan Agent Registry]
     Registry --> Improve[Trace skill improver]
     Improve --> Proposal[Human-reviewed skill proposal]
-    Git[Git-authored skills] --> Sync[Atlan SkillSync]
+    Git[Git-authored skills] --> Sync[Registry Sync]
     Sync --> Skills
 ```
 
@@ -70,7 +70,7 @@ proposal; a human still owns the policy change and the merge.
 6. Produce a Markdown summary and machine-readable review artifact.
 
 This CI lane does not receive an Agent key and does not submit traces. Agent-authenticated
-telemetry belongs to the Daytona acceptance lanes; `ATLANAI_TOKEN` remains scoped to SkillSync.
+telemetry belongs to the Daytona acceptance lanes; `ATLANAI_TOKEN` remains scoped to Registry Sync.
 
 `Kiro PR Review in Daytona` is an independent manual acceptance lane. It downloads only the pinned
 Kiro 2.20.1 archive, verifies both archive and launcher SHA-256 values, uploads the synthetic service,
@@ -81,12 +81,11 @@ OTLP JSON through the Gateway REST API.
 The run fails if Agent identity, skill fingerprints, structured output, Session,
 Output, or Agent/Skill trace readback is incomplete.
 
-`Sync skills to Atlan` is a separate least-privilege workflow. It publishes only from `main` and
-uses full Git history for provenance. Until v0.1.2 is merged, both workflows pin the signed
-`fix/installer-digest-v0.1.2` commit rather than a moving branch name. Pull requests get a
-credential-isolated Registry preflight comment; PR code never receives the publishing credential.
-Add the repository secret `ATLANAI_TOKEN` to enable publication; without it, the workflow reports
-that it is ready but uncredentialed and exits without publishing.
+`Registry Sync` is a separate least-privilege workflow with one Action step, pinned to a reviewed
+commit. On a pull request it reads the changed skills through the GitHub API and posts one preflight
+comment; PR code is never checked out or run. On `main` it publishes the skills under `skills/`
+with the Registry CLI; no other branch publishes. Publishing needs the repository secret
+`ATLANAI_TOKEN`.
 
 ## Repository map
 
@@ -104,7 +103,7 @@ knowledge/                               Engineering standards referenced by ski
 src/registry_pr_review_demo/             Runtime, Registry, Daytona, and trace adapters
 registry/                                Desired state and verified artifact references
 docs/                                    Architecture, API contracts, runbook, diagrams
-.github/workflows/                       Review, SkillSync, and preflight automation
+.github/workflows/                       Review and Registry Sync automation
 ```
 
 ## Evidence status
